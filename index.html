@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lab Virtual · Estados de la Materia</title>
+
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg:       #080d1a;
+      --surface:  #0e1628;
+      --surface2: #121e35;
+      --border:   rgba(255,255,255,0.07);
+      --text:     #c8d6f0;
+      --muted:    #5a6e8a;
+      --accent:   #38bdf8;
+      --solid:    #60a5fa;
+      --liquid:   #34d399;
+      --gas:      #fbbf24;
+      --plasma:   #a78bfa;
+      --bec:      #f472b6;
+      --radius:   14px;
+      --mono:     'Space Mono', monospace;
+      --sans:     'Space Grotesk', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Modo AR puro (cuando viene ?ar=...) ── */
+    body.ar-mode { background: #000; overflow: hidden; }
+    body.ar-mode #main-app { display: none; }
+    #ar-container { display: none; width: 100vw; height: 100vh; }
+    body.ar-mode #ar-container { display: block; }
+    #ar-back-btn {
+      display: none;
+      position: fixed; top: 16px; left: 16px; z-index: 9999;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+      color: #fff; border: 1px solid rgba(255,255,255,0.2);
+      padding: 8px 16px; border-radius: 20px;
+      font-family: var(--mono); font-size: 12px; cursor: pointer;
+      text-decoration: none;
+    }
+    body.ar-mode #ar-back-btn { display: block; }
+
+    /* ── App principal ── */
+    #main-app { display: flex; flex-direction: column; min-height: 100vh; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--text); }
+
+    /* Header */
+    header {
+      padding: 20px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo-icon {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, #1d4ed8, #38bdf8);
+      border-radius: 10px; display: grid; place-items: center; font-size: 17px;
+    }
+    .logo-text h1 { font-size: 16px; font-weight: 700; color: #e2eaf6; }
+    .logo-text p  { font-size: 10px; color: var(--muted); font-family: var(--mono); text-transform: uppercase; letter-spacing: 1px; }
+    .header-tag {
+      font-family: var(--mono); font-size: 11px; color: var(--accent);
+      border: 1px solid var(--accent); padding: 4px 10px; border-radius: 20px; opacity: 0.8;
+    }
+
+    /* Nav */
+    .state-nav {
+      display: flex; gap: 6px; padding: 14px 20px;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+    .state-nav::-webkit-scrollbar { height: 3px; }
+    .state-nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .btn-state {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px;
+      background: transparent; color: var(--muted);
+      font-family: var(--sans); font-size: 13px; font-weight: 600;
+      cursor: pointer; white-space: nowrap; transition: all 0.25s;
+    }
+    .btn-state .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .btn-state:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
+    .btn-state.active[data-state="solid"]  { color: var(--solid);  border-color: var(--solid);  background: rgba(96,165,250,0.1); }
+    .btn-state.active[data-state="liquid"] { color: var(--liquid); border-color: var(--liquid); background: rgba(52,211,153,0.1); }
+    .btn-state.active[data-state="gas"]    { color: var(--gas);    border-color: var(--gas);    background: rgba(251,191,36,0.1); }
+    .btn-state.active[data-state="plasma"] { color: var(--plasma); border-color: var(--plasma); background: rgba(167,139,250,0.1); }
+    .btn-state.active[data-state="bec"]    { color: var(--bec);    border-color: var(--bec);    background: rgba(244,114,182,0.1); }
+    .btn-state.active .dot { opacity: 1; }
+
+    /* Main grid */
+    .main { display: grid; grid-template-columns: 1fr; flex: 1; }
+    @media (min-width: 900px) { .main { grid-template-columns: 1fr 420px; } }
+
+    /* 3D viewer */
+    .viewer-wrap { position: relative; background: var(--bg); min-height: 420px; }
+    .viewer-wrap a-scene { width: 100%; height: 100%; }
+    .viewer-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+    .viewer-hint {
+      position: absolute; bottom: 14px; left: 14px;
+      background: rgba(8,13,26,0.75); backdrop-filter: blur(8px);
+      border: 1px solid var(--border); color: var(--muted);
+      font-size: 11px; font-family: var(--mono); padding: 5px 11px; border-radius: 20px;
+    }
+    .state-label-3d {
+      position: absolute; top: 14px; left: 14px;
+      font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+      letter-spacing: 2px; padding: 4px 10px; border-radius: 4px;
+      border: 1px solid currentColor; opacity: 0.85;
+    }
+
+    /* Info panel */
+    .info-panel {
+      background: var(--surface); border-left: 1px solid var(--border);
+      padding: 32px 28px; display: flex; flex-direction: column; gap: 22px; overflow-y: auto;
+    }
+    .state-eyebrow { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 6px; }
+    .state-title { font-size: 26px; font-weight: 700; color: #e8f0fe; letter-spacing: -0.5px; line-height: 1.2; }
+    .badges { display: flex; flex-wrap: wrap; gap: 8px; }
+    .badge { font-family: var(--mono); font-size: 11px; padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); }
+    .badge.highlight { border-color: currentColor; background: transparent; }
+    .desc-text { font-size: 14px; line-height: 1.75; color: var(--text); }
+    .extra-box {
+      background: var(--surface2); border-left: 3px solid currentColor;
+      padding: 12px 16px; border-radius: 0 8px 8px 0;
+      font-size: 13px; line-height: 1.6; color: var(--muted); font-style: italic;
+    }
+
+    /* AR / QR Section */
+    .ar-section {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px;
+    }
+    .ar-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .ar-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, #312e81, #7c3aed);
+      border-radius: 8px; display: grid; place-items: center; font-size: 15px; flex-shrink: 0;
+    }
+    .ar-title { font-size: 13px; font-weight: 700; color: #ddd6fe; }
+    .ar-subtitle { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .ar-body { display: flex; gap: 14px; align-items: flex-start; }
+    #qr-canvas {
+      flex-shrink: 0; background: #fff; border-radius: 8px; padding: 6px;
+      width: 100px; height: 100px; display: flex; align-items: center; justify-content: center;
+    }
+    #qr-canvas canvas, #qr-canvas img { width: 88px !important; height: 88px !important; }
+    .ar-instructions { font-size: 12px; color: var(--muted); line-height: 1.6; }
+    .ar-instructions strong { color: var(--text); display: block; margin-bottom: 4px; font-size: 13px; }
+    .ar-instructions ol { padding-left: 16px; margin-top: 6px; }
+    .ar-instructions li { margin-bottom: 3px; }
+    .ar-url {
+      margin-top: 10px; font-family: var(--mono); font-size: 10px;
+      color: var(--accent); word-break: break-all; opacity: 0.7;
+    }
+
+    footer {
+      text-align: center; padding: 14px; font-size: 11px;
+      color: var(--muted); font-family: var(--mono);
+      border-top: 1px solid var(--border);
+    }
+    .fade { animation: fadeIn 0.35s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    /* AR scene overlay UI */
+    #ar-title-overlay {
+      display: none;
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.15); color: #fff;
+      padding: 10px 20px; border-radius: 24px;
+      font-family: var(--sans); font-size: 14px; font-weight: 600;
+      z-index: 9999; white-space: nowrap;
+    }
+    body.ar-mode #ar-title-overlay { display: block; }
+  </style>
+</head>
+<body>
+
+  <!-- ── MODO AR (activado por ?ar=estado) ── -->
+  <a href="." id="ar-back-btn">← Volver al laboratorio</a>
+  <div id="ar-title-overlay"></div>
+  <div id="ar-container">
+    <!-- La escena AR se inyecta aquí dinámicamente -->
+  </div>
+
+  <!-- ── APP PRINCIPAL ── -->
+  <div id="main-app">
+
+    <header>
+      <div class="logo">
+        <div class="logo-icon">⚛️</div>
+        <div class="logo-text">
+          <h1>Física Interactiva</h1>
+          <p>Laboratorio Virtual · v2.0</p>
+        </div>
+      </div>
+      <span class="header-tag">AR + 3D</span>
+    </header>
+
+    <nav class="state-nav">
+      <button class="btn-state active" data-state="solid"><span class="dot"></span>Sólido</button>
+      <button class="btn-state" data-state="liquid"><span class="dot"></span>Líquido</button>
+      <button class="btn-state" data-state="gas"><span class="dot"></span>Gaseoso</button>
+      <button class="btn-state" data-state="plasma"><span class="dot"></span>Plasma</button>
+      <button class="btn-state" data-state="bec"><span class="dot"></span>Condensado B-E</button>
+    </nav>
+
+    <div class="main">
+
+      <!-- VISOR 3D -->
+      <div class="viewer-wrap">
+        <a-scene embedded vr-mode-ui="enabled: false" style="height:100%;min-height:420px;">
+          <a-entity camera position="0 0 4" look-controls></a-entity>
+          <a-light type="ambient" intensity="0.5"></a-light>
+          <a-light type="directional" position="2 4 3" intensity="0.9"></a-light>
+          <a-light type="point" position="-2 2 -2" intensity="0.4" color="#60a5fa"></a-light>
+          <a-sky color="#080d1a"></a-sky>
+          <a-entity id="molecule-group" position="0 0 0">
+            <a-entity id="structure"></a-entity>
+          </a-entity>
+        </a-scene>
+        <div class="viewer-overlay">
+          <span class="state-label-3d" id="viewer-label" style="color:#60a5fa;">Estado Sólido</span>
+          <div class="viewer-hint">🖱 Arrastra · 🔍 Scroll = zoom</div>
+        </div>
+      </div>
+
+      <!-- PANEL INFO -->
+      <aside class="info-panel">
+        <div id="state-header">
+          <p class="state-eyebrow">Estado de agregación</p>
+          <h2 class="state-title" id="state-title">Estado Sólido</h2>
+        </div>
+        <div class="badges" id="badges-wrap">
+          <span class="badge highlight" id="energy-badge" style="color:#60a5fa;">Energía Cinética: Muy Baja</span>
+          <span class="badge" id="force-badge">Cohesión: Máxima</span>
+        </div>
+        <p class="desc-text" id="state-description"></p>
+        <div class="extra-box" id="state-extra" style="color:#60a5fa;"></div>
+
+        <!-- QR / AR -->
+        <div class="ar-section">
+          <div class="ar-header">
+            <div class="ar-icon">📱</div>
+            <div>
+              <div class="ar-title">Ver en Realidad Aumentada</div>
+              <div class="ar-subtitle">Escanea con tu celular</div>
+            </div>
+          </div>
+          <div class="ar-body">
+            <div id="qr-canvas"></div>
+            <div class="ar-instructions">
+              <strong>¿Cómo usarlo?</strong>
+              <ol>
+                <li>Escanea el QR con tu cámara.</li>
+                <li>Abre en Chrome (Android) o Safari (iOS).</li>
+                <li>Permite acceso a la cámara.</li>
+                <li>Apunta a una superficie plana.</li>
+              </ol>
+              <div class="ar-url" id="ar-url-display"></div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <footer>Laboratorio Virtual de Física · Estados de la Materia · A-Frame WebXR + AR.js</footer>
+  </div><!-- /#main-app -->
+
+  <script>
+    // ── URL base pública ──
+    const BASE_URL = 'https://romanromojuan-byte.github.io/roman1371/';
+
+    // ── Datos ──
+    const states = {
+      solid: {
+        title: "Estado Sólido",
+        energy: "Energía Cinética: Muy Baja", force: "Cohesión: Máxima",
+        color: "#60a5fa",
+        description: "En el estado sólido, las partículas están unidas por fuerzas de cohesión muy intensas. Los átomos se mantienen en posiciones fijas, vibrando ligeramente sin desplazarse libremente. Esto otorga a los sólidos una forma definida y un volumen constante, siendo prácticamente incompresibles.",
+        extra: "Estructura interna organizada: comportamiento típico de cristales de hielo o metales, con orden de largo alcance.",
+        setup3D: buildSolid,
+        arObjects: `
+          <a-box position="0 1.2 -3" color="#60a5fa" opacity="0.9"
+            material="emissive:#1d4ed8;emissiveIntensity:0.5"
+            animation="property:rotation;to:0 360 0;dur:5000;loop:true;easing:linear">
+          </a-box>
+          <a-box position="-0.7 1.2 -3.5" scale="0.6 0.6 0.6" color="#3b82f6"
+            animation="property:rotation;to:360 0 360;dur:4000;loop:true;easing:linear">
+          </a-box>
+          <a-box position="0.7 1.2 -3.5" scale="0.6 0.6 0.6" color="#93c5fd"
+            animation="property:rotation;to:0 360 360;dur:6000;loop:true;easing:linear">
+          </a-box>
+          <a-text value="Estado Solido" align="center" color="#60a5fa" position="0 2.2 -3" scale="1.5 1.5 1.5"></a-text>`
+      },
+      liquid: {
+        title: "Estado Líquido",
+        energy: "Energía Cinética: Moderada", force: "Cohesión: Intermedia",
+        color: "#34d399",
+        description: "Los líquidos representan un equilibrio dinámico entre la energía térmica y las fuerzas de cohesión. Las partículas tienen suficiente energía para fluir unas sobre otras, pero no para separarse. Adoptan la forma del recipiente, manteniendo un volumen constante.",
+        extra: "Fluidez física: las moléculas se deslizan libremente permitiendo el transporte de materia sin perder cohesión volumétrica.",
+        setup3D: buildLiquid,
+        arObjects: `
+          <a-sphere position="0 1.2 -3" radius="0.4" color="#34d399"
+            material="emissive:#065f46;emissiveIntensity:0.5;opacity:0.85"
+            animation="property:position;to:0 1.0 -3;dir:alternate;dur:1200;loop:true;easing:easeInOutSine">
+          </a-sphere>
+          <a-sphere position="-0.6 1.3 -3.4" radius="0.25" color="#10b981"
+            animation="property:position;to:-0.6 1.1 -3.4;dir:alternate;dur:900;loop:true;easing:easeInOutSine">
+          </a-sphere>
+          <a-sphere position="0.6 1.1 -3.4" radius="0.25" color="#6ee7b7"
+            animation="property:position;to:0.6 0.95 -3.4;dir:alternate;dur:1500;loop:true;easing:easeInOutSine">
+          </a-sphere>
+          <a-text value="Estado Liquido" align="center" color="#34d399" position="0 2.2 -3" scale="1.5 1.5 1.5"></a-text>`
+      },
+      gas: {
+        title: "Estado Gaseoso",
+        energy: "Energía Cinética: Alta", force: "Cohesión: Despreciable",
+        color: "#fbbf24",
+        description: "En el estado gaseoso, la energía cinética supera ampliamente las fuerzas de atracción. Las moléculas se mueven de forma caótica a altas velocidades. Un gas no posee forma ni volumen propio; se expande para ocupar la totalidad del espacio disponible.",
+        extra: "Cumple con las Leyes de los Gases Ideales (P·V = n·R·T). Las distancias intermoleculares son enormes comparadas con el tamaño de las partículas.",
+        setup3D: buildGas,
+        arObjects: `
+          <a-sphere position="0 1.5 -3" radius="0.12" color="#fbbf24"
+            animation="property:position;to:0.5 1.9 -2.7;dir:alternate;dur:700;loop:true;easing:linear">
+          </a-sphere>
+          <a-sphere position="-0.5 1.2 -3.2" radius="0.10" color="#f59e0b"
+            animation="property:position;to:0.3 1.7 -2.8;dir:alternate;dur:550;loop:true;easing:linear">
+          </a-sphere>
+          <a-sphere position="0.5 1.7 -3.3" radius="0.10" color="#fde68a"
+            animation="property:position;to:-0.4 1.1 -3.6;dir:alternate;dur:650;loop:true;easing:linear">
+          </a-sphere>
+          <a-sphere position="-0.2 1.8 -2.8" radius="0.09" color="#fbbf24"
+            animation="property:position;to:0.5 1.2 -3.5;dir:alternate;dur:800;loop:true;easing:linear">
+          </a-sphere>
+          <a-text value="Estado Gaseoso" align="center" color="#fbbf24" position="0 2.4 -3" scale="1.5 1.5 1.5"></a-text>`
+      },
+      plasma: {
+        title: "El Plasma",
+        energy: "Energía Cinética: Extrema", force: "Cohesión: Nula (Ionizado)",
+        color: "#a78bfa",
+        description: "El plasma es un gas ionizado que se forma bajo temperaturas sumamente elevadas. Los electrones se desprenden de sus núcleos, generando una mezcla de iones positivos y electrones libres. Es un excelente conductor de electricidad y responde fuertemente a fuerzas magnéticas.",
+        extra: "El estado más común en el universo visible: forma las estrellas, el Sol, los rayos atmosféricos y las lámparas de neón.",
+        setup3D: buildPlasma,
+        arObjects: `
+          <a-sphere position="0 1.4 -3" radius="0.5" color="#a78bfa"
+            material="emissive:#7c3aed;emissiveIntensity:1.5;wireframe:true"
+            animation="property:rotation;to:360 360 0;dur:2000;loop:true;easing:linear">
+          </a-sphere>
+          <a-torus position="0 1.4 -3" radius="0.7" radius-tubular="0.025" color="#ec4899"
+            animation="property:rotation;to:0 360 360;dur:1400;loop:true;easing:linear">
+          </a-torus>
+          <a-torus position="0 1.4 -3" radius="0.9" radius-tubular="0.015" color="#8b5cf6" rotation="45 0 0"
+            animation="property:rotation;to:45 360 0;dur:2200;loop:true;easing:linear">
+          </a-torus>
+          <a-text value="Plasma" align="center" color="#a78bfa" position="0 2.4 -3" scale="1.5 1.5 1.5"></a-text>`
+      },
+      bec: {
+        title: "Condensado de Bose-Einstein",
+        energy: "Energía Cinética: Casi Cero", force: "Fusión Cuántica",
+        color: "#f472b6",
+        description: "Predicho por Einstein y Bose, este estado se alcanza a temperaturas cercanas al cero absoluto (−273.15 °C). Miles de átomos se comportan exactamente como una sola entidad o 'superátomo', manifestando propiedades macroscópicas de mecánica cuántica.",
+        extra: "Superfluidez absoluta: la fricción desaparece por completo y la materia se unifica en una identidad colectiva única.",
+        setup3D: buildBEC,
+        arObjects: `
+          <a-sphere position="0 1.4 -3" radius="0.6" color="#f472b6"
+            material="opacity:0.82;emissive:#9d174d;emissiveIntensity:0.6"
+            animation="property:scale;to:1.3 1.3 1.3;dir:alternate;dur:3000;loop:true;easing:easeInOutQuad">
+          </a-sphere>
+          <a-ring position="0 1.4 -3" radius-inner="0.75" radius-outer="0.87" color="#60a5fa"
+            animation="property:rotation;to:360 0 0;dur:4000;loop:true;easing:linear">
+          </a-ring>
+          <a-ring position="0 1.4 -3" radius-inner="1.0" radius-outer="1.1" color="#f472b6" rotation="0 0 60"
+            animation="property:rotation;to:0 360 60;dur:5500;loop:true;easing:linear">
+          </a-ring>
+          <a-text value="Condensado B-E" align="center" color="#f472b6" position="0 2.5 -3" scale="1.5 1.5 1.5"></a-text>`
+      }
+    };
+
+    // ── DOM refs ──
+    const buttons     = document.querySelectorAll('.btn-state');
+    const titleEl     = document.getElementById('state-title');
+    const descEl      = document.getElementById('state-description');
+    const extraEl     = document.getElementById('state-extra');
+    const energyBadge = document.getElementById('energy-badge');
+    const forceBadge  = document.getElementById('force-badge');
+    const viewerLabel = document.getElementById('viewer-label');
+    const structureEl = document.getElementById('structure');
+    const qrCanvas    = document.getElementById('qr-canvas');
+    const arUrlDisplay= document.getElementById('ar-url-display');
+
+    // ── Detectar modo AR ──
+    function checkARMode() {
+      const params = new URLSearchParams(window.location.search);
+      const arState = params.get('ar');
+      if (arState && states[arState]) {
+        activateARMode(arState);
+        return true;
+      }
+      return false;
+    }
+
+    function activateARMode(stateKey) {
+      const d = states[stateKey];
+      document.body.classList.add('ar-mode');
+      document.getElementById('ar-title-overlay').textContent = '⚛️ ' + d.title;
+
+      const arHTML = `
+        <a-scene
+          embedded
+          arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+          vr-mode-ui="enabled: false"
+          renderer="logarithmicDepthBuffer: true; antialias: true;"
+          style="width:100vw;height:100vh;">
+
+          <a-marker preset="hiro">
+            ${d.arObjects}
+          </a-marker>
+
+          <a-entity camera></a-entity>
+        </a-scene>`;
+
+      document.getElementById('ar-container').innerHTML = arHTML;
+    }
+
+    // ── Actualizar estado (modo normal) ──
+    function updateState(key) {
+      const d = states[key];
+
+      titleEl.textContent        = d.title;
+      descEl.textContent         = d.description;
+      extraEl.textContent        = d.extra;
+      extraEl.style.color        = d.color;
+      energyBadge.textContent    = d.energy;
+      energyBadge.style.color    = d.color;
+      forceBadge.textContent     = d.force;
+      viewerLabel.textContent    = d.title;
+      viewerLabel.style.color    = d.color;
+
+      // Generar QR con URL pública real
+      const arURL = BASE_URL + '?ar=' + key;
+      arUrlDisplay.textContent = arURL;
+      qrCanvas.innerHTML = '';
+      new QRCode(qrCanvas, {
+        text: arURL,
+        width: 88, height: 88,
+        colorDark: '#080d1a', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+
+      // Rebuild 3D
+      structureEl.innerHTML = '';
+      const mg = document.getElementById('molecule-group');
+      mg.removeAttribute('animation');
+      void mg.offsetWidth;
+      d.setup3D();
+
+      // Fade
+      ['state-header','badges-wrap'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove('fade'); void el.offsetWidth; el.classList.add('fade');
+      });
+    }
+
+    // ── Constructores 3D ──
+    function buildSolid() {
+      const size = 3, sp = 0.38, off = ((size-1)*sp)/2;
+      for (let x=0;x<size;x++) for (let y=0;y<size;y++) for (let z=0;z<size;z++) {
+        const s = document.createElement('a-sphere');
+        s.setAttribute('radius','0.1');
+        s.setAttribute('color','#60a5fa');
+        s.setAttribute('material','emissive:#1d4ed8;emissiveIntensity:0.4');
+        s.setAttribute('position',`${x*sp-off} ${y*sp-off} ${z*sp-off}`);
+        s.setAttribute('animation',`property:scale;to:1.08 1.08 1.08;dir:alternate;dur:${180+Math.random()*80};loop:true`);
+        structureEl.appendChild(s);
+      }
+      document.getElementById('molecule-group').setAttribute('animation','property:rotation;to:0 360 0;dur:20000;loop:true;easing:linear');
+    }
+
+    function buildLiquid() {
+      document.getElementById('molecule-group').setAttribute('animation','property:rotation;to:0 360 0;dur:12000;loop:true;easing:linear');
+      for (let i=0;i<28;i++) {
+        const s = document.createElement('a-sphere');
+        const r = 0.09 + Math.random()*0.04;
+        s.setAttribute('radius', String(r));
+        s.setAttribute('color','#34d399');
+        s.setAttribute('material','emissive:#065f46;emissiveIntensity:0.4');
+        const px=(Math.random()-0.5)*1.8, py=(Math.random()-0.5)*1.2, pz=(Math.random()-0.5)*1.0;
+        s.setAttribute('position',`${px} ${py} ${pz}`);
+        s.setAttribute('animation',`property:position;to:${px} ${py-0.18} ${pz};dir:alternate;dur:${900+Math.random()*800};loop:true;easing:easeInOutSine`);
+        structureEl.appendChild(s);
+      }
+    }
+
+    function buildGas() {
+      for (let i=0;i<32;i++) {
+        const s = document.createElement('a-sphere');
+        s.setAttribute('radius','0.07');
+        s.setAttribute('color','#fbbf24');
+        s.setAttribute('material','emissive:#92400e;emissiveIntensity:0.4');
+        const rng=2.2;
+        const px=(Math.random()-0.5)*rng, py=(Math.random()-0.5)*rng, pz=(Math.random()-0.5)*rng;
+        s.setAttribute('position',`${px} ${py} ${pz}`);
+        const tx=(Math.random()-0.5)*rng, ty=(Math.random()-0.5)*rng, tz=(Math.random()-0.5)*rng;
+        s.setAttribute('animation',`property:position;to:${tx} ${ty} ${tz};dur:${600+Math.random()*1400};dir:alternate;loop:true;easing:linear`);
+        structureEl.appendChild(s);
+      }
+    }
+
+    function buildPlasma() {
+      const core = document.createElement('a-sphere');
+      core.setAttribute('radius','0.55'); core.setAttribute('color','#a78bfa');
+      core.setAttribute('material','emissive:#7c3aed;emissiveIntensity:1.5;wireframe:true');
+      core.setAttribute('animation','property:rotation;to:360 360 0;dur:2500;loop:true;easing:linear');
+
+      const t1 = document.createElement('a-torus');
+      t1.setAttribute('radius','0.75'); t1.setAttribute('radius-tubular','0.025');
+      t1.setAttribute('color','#ec4899');
+      t1.setAttribute('animation','property:rotation;to:0 360 360;dur:1400;loop:true;easing:linear');
+
+      const t2 = document.createElement('a-torus');
+      t2.setAttribute('radius','0.9'); t2.setAttribute('radius-tubular','0.015');
+      t2.setAttribute('color','#8b5cf6'); t2.setAttribute('rotation','45 0 0');
+      t2.setAttribute('animation','property:rotation;to:45 360 0;dur:2000;loop:true;easing:linear');
+
+      [core,t1,t2].forEach(e=>structureEl.appendChild(e));
+    }
+
+    function buildBEC() {
+      const sup = document.createElement('a-sphere');
+      sup.setAttribute('radius','0.65'); sup.setAttribute('color','#f472b6');
+      sup.setAttribute('material','opacity:0.82;emissive:#9d174d;emissiveIntensity:0.5');
+      sup.setAttribute('animation','property:scale;to:1.35 1.35 1.35;dir:alternate;dur:3200;loop:true;easing:easeInOutQuad');
+
+      const r1 = document.createElement('a-ring');
+      r1.setAttribute('radius-inner','0.75'); r1.setAttribute('radius-outer','0.87');
+      r1.setAttribute('color','#60a5fa');
+      r1.setAttribute('animation','property:rotation;to:360 0 0;dur:4200;loop:true;easing:linear');
+
+      const r2 = document.createElement('a-ring');
+      r2.setAttribute('radius-inner','1.0'); r2.setAttribute('radius-outer','1.1');
+      r2.setAttribute('color','#f472b6'); r2.setAttribute('rotation','0 0 60');
+      r2.setAttribute('animation','property:rotation;to:0 360 60;dur:5500;loop:true;easing:linear');
+
+      [sup,r1,r2].forEach(e=>structureEl.appendChild(e));
+    }
+
+    // ── Botones ──
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        updateState(btn.dataset.state);
+      });
+    });
+
+    // ── Arranque ──
+    if (!checkARMode()) {
+      updateState('solid');
+    }
+  </script>
+</body>
+</html>

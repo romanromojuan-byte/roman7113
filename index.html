@@ -1,204 +1,205 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Lab Virtual · Estados de la Materia</title>
-
   <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-
   <style>
     :root {
-      --bg:       #080d1a;
-      --surface:  #0e1628;
-      --surface2: #121e35;
-      --border:   rgba(255,255,255,0.07);
-      --text:     #c8d6f0;
-      --muted:    #5a6e8a;
-      --accent:   #38bdf8;
-      --solid:    #60a5fa;
-      --liquid:   #34d399;
-      --gas:      #fbbf24;
-      --plasma:   #a78bfa;
-      --bec:      #f472b6;
-      --radius:   14px;
-      --mono:     'Space Mono', monospace;
-      --sans:     'Space Grotesk', sans-serif;
+      --bg:#080d1a; --surface:#0e1628; --surface2:#121e35;
+      --border:rgba(255,255,255,0.07); --text:#c8d6f0; --muted:#5a6e8a; --accent:#38bdf8;
+      --solid:#60a5fa; --liquid:#34d399; --gas:#fbbf24; --plasma:#a78bfa; --bec:#f472b6;
+      --r:12px; --mono:'Space Mono',monospace; --sans:'Space Grotesk',sans-serif;
     }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:var(--sans);background:var(--bg);color:var(--text);}
 
-    /* ── Modo AR puro (cuando viene ?ar=...) ── */
-    body.ar-mode { background: #000; overflow: hidden; }
-    body.ar-mode #main-app { display: none; }
-    #ar-container { display: none; width: 100vw; height: 100vh; }
-    body.ar-mode #ar-container { display: block; }
-    #ar-back-btn {
-      display: none;
-      position: fixed; top: 16px; left: 16px; z-index: 9999;
-      background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
-      color: #fff; border: 1px solid rgba(255,255,255,0.2);
-      padding: 8px 16px; border-radius: 20px;
-      font-family: var(--mono); font-size: 12px; cursor: pointer;
-      text-decoration: none;
+    /* ── AR MODE ── */
+    body.ar-mode #main-app{display:none;}
+    #ar-container{display:none;width:100vw;height:100vh;}
+    body.ar-mode #ar-container{display:block;}
+    #ar-back-btn{
+      display:none;position:fixed;top:16px;left:16px;z-index:9999;
+      background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);color:#fff;
+      border:1px solid rgba(255,255,255,0.2);padding:8px 18px;border-radius:20px;
+      font-family:var(--mono);font-size:12px;cursor:pointer;text-decoration:none;
     }
-    body.ar-mode #ar-back-btn { display: block; }
+    body.ar-mode #ar-back-btn{display:block;}
+    #ar-label{
+      display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+      background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);
+      border:1px solid rgba(255,255,255,0.15);color:#fff;
+      padding:10px 22px;border-radius:24px;font-family:var(--sans);font-size:14px;font-weight:600;
+      z-index:9999;white-space:nowrap;
+    }
+    body.ar-mode #ar-label{display:block;}
+    #ar-hint{
+      display:none;position:fixed;top:16px;right:16px;z-index:9999;
+      background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);color:var(--muted);
+      border:1px solid var(--border);padding:6px 12px;border-radius:20px;
+      font-family:var(--mono);font-size:11px;
+    }
+    body.ar-mode #ar-hint{display:block;}
 
-    /* ── App principal ── */
-    #main-app { display: flex; flex-direction: column; min-height: 100vh; }
-    body { font-family: var(--sans); background: var(--bg); color: var(--text); }
-
-    /* Header */
-    header {
-      padding: 20px 28px;
-      display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid var(--border);
-      background: var(--surface);
+    /* ── LAYOUT ── */
+    #main-app{display:flex;flex-direction:column;min-height:100vh;}
+    header{
+      padding:18px 28px;display:flex;align-items:center;justify-content:space-between;
+      border-bottom:1px solid var(--border);background:var(--surface);
     }
-    .logo { display: flex; align-items: center; gap: 12px; }
-    .logo-icon {
-      width: 38px; height: 38px;
-      background: linear-gradient(135deg, #1d4ed8, #38bdf8);
-      border-radius: 10px; display: grid; place-items: center; font-size: 17px;
+    .logo{display:flex;align-items:center;gap:12px;}
+    .logo-icon{
+      width:38px;height:38px;background:linear-gradient(135deg,#1d4ed8,#38bdf8);
+      border-radius:10px;display:grid;place-items:center;font-size:17px;
     }
-    .logo-text h1 { font-size: 16px; font-weight: 700; color: #e2eaf6; }
-    .logo-text p  { font-size: 10px; color: var(--muted); font-family: var(--mono); text-transform: uppercase; letter-spacing: 1px; }
-    .header-tag {
-      font-family: var(--mono); font-size: 11px; color: var(--accent);
-      border: 1px solid var(--accent); padding: 4px 10px; border-radius: 20px; opacity: 0.8;
+    .logo-text h1{font-size:16px;font-weight:700;color:#e2eaf6;}
+    .logo-text p{font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;}
+    .header-tag{
+      font-family:var(--mono);font-size:11px;color:var(--accent);
+      border:1px solid var(--accent);padding:4px 10px;border-radius:20px;opacity:.8;
     }
 
-    /* Nav */
-    .state-nav {
-      display: flex; gap: 6px; padding: 14px 20px;
-      background: var(--surface); border-bottom: 1px solid var(--border);
-      overflow-x: auto;
+    /* State nav */
+    .state-nav{
+      display:flex;gap:6px;padding:12px 20px;
+      background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;
     }
-    .state-nav::-webkit-scrollbar { height: 3px; }
-    .state-nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-    .btn-state {
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px;
-      background: transparent; color: var(--muted);
-      font-family: var(--sans); font-size: 13px; font-weight: 600;
-      cursor: pointer; white-space: nowrap; transition: all 0.25s;
+    .state-nav::-webkit-scrollbar{height:3px;}
+    .state-nav::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+    .btn-state{
+      display:flex;align-items:center;gap:7px;padding:8px 16px;
+      border:1px solid var(--border);border-radius:8px;background:transparent;
+      color:var(--muted);font-family:var(--sans);font-size:13px;font-weight:600;
+      cursor:pointer;white-space:nowrap;transition:all .25s;
     }
-    .btn-state .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
-    .btn-state:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
-    .btn-state.active[data-state="solid"]  { color: var(--solid);  border-color: var(--solid);  background: rgba(96,165,250,0.1); }
-    .btn-state.active[data-state="liquid"] { color: var(--liquid); border-color: var(--liquid); background: rgba(52,211,153,0.1); }
-    .btn-state.active[data-state="gas"]    { color: var(--gas);    border-color: var(--gas);    background: rgba(251,191,36,0.1); }
-    .btn-state.active[data-state="plasma"] { color: var(--plasma); border-color: var(--plasma); background: rgba(167,139,250,0.1); }
-    .btn-state.active[data-state="bec"]    { color: var(--bec);    border-color: var(--bec);    background: rgba(244,114,182,0.1); }
-    .btn-state.active .dot { opacity: 1; }
+    .btn-state .dot{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.4;flex-shrink:0;}
+    .btn-state:hover{color:var(--text);border-color:rgba(255,255,255,.18);}
+    .btn-state.active[data-state="solid"] {color:var(--solid); border-color:var(--solid); background:rgba(96,165,250,.1);}
+    .btn-state.active[data-state="liquid"]{color:var(--liquid);border-color:var(--liquid);background:rgba(52,211,153,.1);}
+    .btn-state.active[data-state="gas"]   {color:var(--gas);   border-color:var(--gas);   background:rgba(251,191,36,.1);}
+    .btn-state.active[data-state="plasma"]{color:var(--plasma);border-color:var(--plasma);background:rgba(167,139,250,.1);}
+    .btn-state.active[data-state="bec"]   {color:var(--bec);   border-color:var(--bec);   background:rgba(244,114,182,.1);}
+    .btn-state.active .dot{opacity:1;}
 
     /* Main grid */
-    .main { display: grid; grid-template-columns: 1fr; flex: 1; }
-    @media (min-width: 900px) { .main { grid-template-columns: 1fr 420px; } }
+    .main{display:grid;grid-template-columns:1fr;flex:1;}
+    @media(min-width:960px){.main{grid-template-columns:1fr 460px;}}
 
     /* 3D viewer */
-    .viewer-wrap { position: relative; background: var(--bg); min-height: 420px; }
-    .viewer-wrap a-scene { width: 100%; height: 100%; }
-    .viewer-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
-    .viewer-hint {
-      position: absolute; bottom: 14px; left: 14px;
-      background: rgba(8,13,26,0.75); backdrop-filter: blur(8px);
-      border: 1px solid var(--border); color: var(--muted);
-      font-size: 11px; font-family: var(--mono); padding: 5px 11px; border-radius: 20px;
+    .viewer-wrap{position:relative;background:var(--bg);min-height:420px;}
+    .viewer-wrap a-scene{width:100%;height:100%;}
+    .viewer-overlay{position:absolute;inset:0;pointer-events:none;z-index:5;}
+    .viewer-hint{
+      position:absolute;bottom:14px;left:14px;
+      background:rgba(8,13,26,.78);backdrop-filter:blur(8px);
+      border:1px solid var(--border);color:var(--muted);
+      font-size:11px;font-family:var(--mono);padding:5px 11px;border-radius:20px;
     }
-    .state-label-3d {
-      position: absolute; top: 14px; left: 14px;
-      font-family: var(--mono); font-size: 10px; text-transform: uppercase;
-      letter-spacing: 2px; padding: 4px 10px; border-radius: 4px;
-      border: 1px solid currentColor; opacity: 0.85;
+    .state-label-3d{
+      position:absolute;top:14px;left:14px;font-family:var(--mono);
+      font-size:10px;text-transform:uppercase;letter-spacing:2px;
+      padding:4px 10px;border-radius:4px;border:1px solid currentColor;opacity:.85;
     }
 
     /* Info panel */
-    .info-panel {
-      background: var(--surface); border-left: 1px solid var(--border);
-      padding: 32px 28px; display: flex; flex-direction: column; gap: 22px; overflow-y: auto;
+    .info-panel{
+      background:var(--surface);border-left:1px solid var(--border);
+      padding:0;display:flex;flex-direction:column;overflow-y:auto;max-height:calc(100vh - 130px);
     }
-    .state-eyebrow { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 6px; }
-    .state-title { font-size: 26px; font-weight: 700; color: #e8f0fe; letter-spacing: -0.5px; line-height: 1.2; }
-    .badges { display: flex; flex-wrap: wrap; gap: 8px; }
-    .badge { font-family: var(--mono); font-size: 11px; padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); }
-    .badge.highlight { border-color: currentColor; background: transparent; }
-    .desc-text { font-size: 14px; line-height: 1.75; color: var(--text); }
-    .extra-box {
-      background: var(--surface2); border-left: 3px solid currentColor;
-      padding: 12px 16px; border-radius: 0 8px 8px 0;
-      font-size: 13px; line-height: 1.6; color: var(--muted); font-style: italic;
+    .info-scroll{padding:26px 26px 20px;display:flex;flex-direction:column;gap:18px;}
+
+    .state-eyebrow{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:5px;}
+    .state-title{font-size:24px;font-weight:700;color:#e8f0fe;letter-spacing:-.5px;line-height:1.2;}
+    .badges{display:flex;flex-wrap:wrap;gap:7px;}
+    .badge{font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);}
+    .badge.hi{border-color:currentColor;background:transparent;}
+    .desc-text{font-size:13px;line-height:1.75;color:var(--text);}
+    .extra-box{
+      background:var(--surface2);border-left:3px solid currentColor;
+      padding:11px 14px;border-radius:0 8px 8px 0;
+      font-size:12px;line-height:1.6;color:var(--muted);font-style:italic;
     }
 
-    /* AR / QR Section */
-    .ar-section {
-      background: var(--surface2); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 18px;
+    /* ── Examples section ── */
+    .examples-section{}
+    .section-label{
+      font-family:var(--mono);font-size:10px;text-transform:uppercase;
+      letter-spacing:2px;color:var(--muted);margin-bottom:10px;
     }
-    .ar-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-    .ar-icon {
-      width: 32px; height: 32px;
-      background: linear-gradient(135deg, #312e81, #7c3aed);
-      border-radius: 8px; display: grid; place-items: center; font-size: 15px; flex-shrink: 0;
+    .examples-grid{
+      display:grid;grid-template-columns:repeat(2,1fr);gap:8px;
     }
-    .ar-title { font-size: 13px; font-weight: 700; color: #ddd6fe; }
-    .ar-subtitle { font-size: 11px; color: var(--muted); margin-top: 1px; }
-    .ar-body { display: flex; gap: 14px; align-items: flex-start; }
-    #qr-canvas {
-      flex-shrink: 0; background: #fff; border-radius: 8px; padding: 6px;
-      width: 100px; height: 100px; display: flex; align-items: center; justify-content: center;
+    .ex-card{
+      background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+      padding:12px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;gap:6px;
     }
-    #qr-canvas canvas, #qr-canvas img { width: 88px !important; height: 88px !important; }
-    .ar-instructions { font-size: 12px; color: var(--muted); line-height: 1.6; }
-    .ar-instructions strong { color: var(--text); display: block; margin-bottom: 4px; font-size: 13px; }
-    .ar-instructions ol { padding-left: 16px; margin-top: 6px; }
-    .ar-instructions li { margin-bottom: 3px; }
-    .ar-url {
-      margin-top: 10px; font-family: var(--mono); font-size: 10px;
-      color: var(--accent); word-break: break-all; opacity: 0.7;
+    .ex-card:hover{border-color:rgba(255,255,255,.18);transform:translateY(-1px);}
+    .ex-card.active-ex{border-color:currentColor;background:rgba(255,255,255,.04);}
+    .ex-emoji{font-size:22px;line-height:1;}
+    .ex-name{font-size:12px;font-weight:700;color:#e2eaf6;line-height:1.3;}
+    .ex-short{font-size:11px;color:var(--muted);line-height:1.4;}
+
+    /* Example detail */
+    .ex-detail{
+      background:var(--surface2);border:1px solid var(--border);
+      border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;
+    }
+    .ex-detail-header{display:flex;align-items:center;gap:12px;}
+    .ex-detail-emoji{font-size:32px;line-height:1;}
+    .ex-detail-info{}
+    .ex-detail-name{font-size:15px;font-weight:700;color:#e2eaf6;}
+    .ex-detail-badge{
+      display:inline-block;margin-top:3px;font-family:var(--mono);font-size:10px;
+      padding:2px 8px;border-radius:4px;border:1px solid currentColor;
+    }
+    .ex-detail-desc{font-size:13px;color:var(--text);line-height:1.7;}
+    .ex-detail-fact{
+      font-size:12px;color:var(--muted);font-style:italic;
+      border-left:2px solid currentColor;padding-left:10px;line-height:1.6;
     }
 
-    footer {
-      text-align: center; padding: 14px; font-size: 11px;
-      color: var(--muted); font-family: var(--mono);
-      border-top: 1px solid var(--border);
+    /* QR dentro del detalle */
+    .ex-ar-row{
+      display:flex;gap:12px;align-items:flex-start;
+      background:rgba(0,0,0,.2);border-radius:8px;padding:12px;border:1px solid var(--border);
     }
-    .fade { animation: fadeIn 0.35s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .ex-qr-wrap{
+      flex-shrink:0;background:#fff;border-radius:7px;padding:5px;
+      width:90px;height:90px;display:flex;align-items:center;justify-content:center;
+    }
+    .ex-qr-wrap canvas,.ex-qr-wrap img{width:80px!important;height:80px!important;}
+    .ex-ar-info{font-size:11px;color:var(--muted);line-height:1.6;}
+    .ex-ar-info strong{color:var(--accent);display:block;font-size:12px;margin-bottom:4px;}
+    .ex-ar-url{font-family:var(--mono);font-size:9px;color:var(--accent);word-break:break-all;opacity:.6;margin-top:6px;}
 
-    /* AR scene overlay UI */
-    #ar-title-overlay {
-      display: none;
-      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-      background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,0.15); color: #fff;
-      padding: 10px 20px; border-radius: 24px;
-      font-family: var(--sans); font-size: 14px; font-weight: 600;
-      z-index: 9999; white-space: nowrap;
+    footer{
+      text-align:center;padding:13px;font-size:11px;
+      color:var(--muted);font-family:var(--mono);border-top:1px solid var(--border);
     }
-    body.ar-mode #ar-title-overlay { display: block; }
+    .fade{animation:fi .3s ease;}
+    @keyframes fi{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:none;}}
   </style>
 </head>
 <body>
 
-  <!-- ── MODO AR (activado por ?ar=estado) ── -->
-  <a href="." id="ar-back-btn">← Volver al laboratorio</a>
-  <div id="ar-title-overlay"></div>
-  <div id="ar-container">
-    <!-- La escena AR se inyecta aquí dinámicamente -->
-  </div>
+  <!-- AR overlay elements -->
+  <a href="." id="ar-back-btn">← Volver al lab</a>
+  <div id="ar-label"></div>
+  <div id="ar-hint">📌 Apunta al marcador Hiro</div>
+  <div id="ar-container"></div>
 
-  <!-- ── APP PRINCIPAL ── -->
+  <!-- MAIN APP -->
   <div id="main-app">
-
     <header>
       <div class="logo">
         <div class="logo-icon">⚛️</div>
         <div class="logo-text">
           <h1>Física Interactiva</h1>
-          <p>Laboratorio Virtual · v2.0</p>
+          <p>Laboratorio Virtual · v3.0</p>
         </div>
       </div>
       <span class="header-tag">AR + 3D</span>
@@ -213,10 +214,9 @@
     </nav>
 
     <div class="main">
-
       <!-- VISOR 3D -->
       <div class="viewer-wrap">
-        <a-scene embedded vr-mode-ui="enabled: false" style="height:100%;min-height:420px;">
+        <a-scene embedded vr-mode-ui="enabled:false" style="height:100%;min-height:420px;">
           <a-entity camera position="0 0 4" look-controls></a-entity>
           <a-light type="ambient" intensity="0.5"></a-light>
           <a-light type="directional" position="2 4 3" intensity="0.9"></a-light>
@@ -232,39 +232,47 @@
         </div>
       </div>
 
-      <!-- PANEL INFO -->
+      <!-- INFO PANEL -->
       <aside class="info-panel">
-        <div id="state-header">
-          <p class="state-eyebrow">Estado de agregación</p>
-          <h2 class="state-title" id="state-title">Estado Sólido</h2>
-        </div>
-        <div class="badges" id="badges-wrap">
-          <span class="badge highlight" id="energy-badge" style="color:#60a5fa;">Energía Cinética: Muy Baja</span>
-          <span class="badge" id="force-badge">Cohesión: Máxima</span>
-        </div>
-        <p class="desc-text" id="state-description"></p>
-        <div class="extra-box" id="state-extra" style="color:#60a5fa;"></div>
-
-        <!-- QR / AR -->
-        <div class="ar-section">
-          <div class="ar-header">
-            <div class="ar-icon">📱</div>
-            <div>
-              <div class="ar-title">Ver en Realidad Aumentada</div>
-              <div class="ar-subtitle">Escanea con tu celular</div>
-            </div>
+        <div class="info-scroll">
+          <!-- State header -->
+          <div id="state-header">
+            <p class="state-eyebrow">Estado de agregación</p>
+            <h2 class="state-title" id="state-title">Estado Sólido</h2>
           </div>
-          <div class="ar-body">
-            <div id="qr-canvas"></div>
-            <div class="ar-instructions">
-              <strong>¿Cómo usarlo?</strong>
-              <ol>
-                <li>Escanea el QR con tu cámara.</li>
-                <li>Abre en Chrome (Android) o Safari (iOS).</li>
-                <li>Permite acceso a la cámara.</li>
-                <li>Apunta a una superficie plana.</li>
-              </ol>
-              <div class="ar-url" id="ar-url-display"></div>
+          <div class="badges" id="badges-wrap">
+            <span class="badge hi" id="energy-badge" style="color:#60a5fa;">Energía Cinética: Muy Baja</span>
+            <span class="badge" id="force-badge">Cohesión: Máxima</span>
+          </div>
+          <p class="desc-text" id="state-description"></p>
+          <div class="extra-box" id="state-extra" style="color:#60a5fa;"></div>
+
+          <!-- Examples grid -->
+          <div class="examples-section">
+            <p class="section-label">Ejemplos de la vida real</p>
+            <div class="examples-grid" id="examples-grid"></div>
+          </div>
+
+          <!-- Example detail + QR -->
+          <div class="ex-detail" id="ex-detail" style="display:none;">
+            <div class="ex-detail-header">
+              <div class="ex-detail-emoji" id="ex-emoji"></div>
+              <div class="ex-detail-info">
+                <div class="ex-detail-name" id="ex-name"></div>
+                <span class="ex-detail-badge" id="ex-badge"></span>
+              </div>
+            </div>
+            <p class="ex-detail-desc" id="ex-desc"></p>
+            <div class="ex-detail-fact" id="ex-fact" style="color:#60a5fa;"></div>
+            <!-- QR AR -->
+            <div class="ex-ar-row">
+              <div class="ex-qr-wrap" id="ex-qr"></div>
+              <div class="ex-ar-info">
+                <strong>📱 Ver en Realidad Aumentada</strong>
+                Escanea con tu celular (Chrome/Safari).<br>
+                Apunta al marcador Hiro para ver el modelo 3D del ejemplo.
+                <div class="ex-ar-url" id="ex-ar-url"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -272,300 +280,573 @@
     </div>
 
     <footer>Laboratorio Virtual de Física · Estados de la Materia · A-Frame WebXR + AR.js</footer>
-  </div><!-- /#main-app -->
+  </div>
 
   <script>
-    // ── URL base pública ──
-    const BASE_URL = 'https://romanromojuan-byte.github.io/roman1371/';
+  const BASE = 'https://romanromojuan-byte.github.io/roman1371/';
 
-    // ── Datos ──
-    const states = {
-      solid: {
-        title: "Estado Sólido",
-        energy: "Energía Cinética: Muy Baja", force: "Cohesión: Máxima",
-        color: "#60a5fa",
-        description: "En el estado sólido, las partículas están unidas por fuerzas de cohesión muy intensas. Los átomos se mantienen en posiciones fijas, vibrando ligeramente sin desplazarse libremente. Esto otorga a los sólidos una forma definida y un volumen constante, siendo prácticamente incompresibles.",
-        extra: "Estructura interna organizada: comportamiento típico de cristales de hielo o metales, con orden de largo alcance.",
-        setup3D: buildSolid,
-        arObjects: `
-          <a-box position="0 1.2 -3" color="#60a5fa" opacity="0.9"
-            material="emissive:#1d4ed8;emissiveIntensity:0.5"
-            animation="property:rotation;to:0 360 0;dur:5000;loop:true;easing:linear">
-          </a-box>
-          <a-box position="-0.7 1.2 -3.5" scale="0.6 0.6 0.6" color="#3b82f6"
-            animation="property:rotation;to:360 0 360;dur:4000;loop:true;easing:linear">
-          </a-box>
-          <a-box position="0.7 1.2 -3.5" scale="0.6 0.6 0.6" color="#93c5fd"
-            animation="property:rotation;to:0 360 360;dur:6000;loop:true;easing:linear">
-          </a-box>
-          <a-text value="Estado Solido" align="center" color="#60a5fa" position="0 2.2 -3" scale="1.5 1.5 1.5"></a-text>`
-      },
-      liquid: {
-        title: "Estado Líquido",
-        energy: "Energía Cinética: Moderada", force: "Cohesión: Intermedia",
-        color: "#34d399",
-        description: "Los líquidos representan un equilibrio dinámico entre la energía térmica y las fuerzas de cohesión. Las partículas tienen suficiente energía para fluir unas sobre otras, pero no para separarse. Adoptan la forma del recipiente, manteniendo un volumen constante.",
-        extra: "Fluidez física: las moléculas se deslizan libremente permitiendo el transporte de materia sin perder cohesión volumétrica.",
-        setup3D: buildLiquid,
-        arObjects: `
-          <a-sphere position="0 1.2 -3" radius="0.4" color="#34d399"
-            material="emissive:#065f46;emissiveIntensity:0.5;opacity:0.85"
-            animation="property:position;to:0 1.0 -3;dir:alternate;dur:1200;loop:true;easing:easeInOutSine">
-          </a-sphere>
-          <a-sphere position="-0.6 1.3 -3.4" radius="0.25" color="#10b981"
-            animation="property:position;to:-0.6 1.1 -3.4;dir:alternate;dur:900;loop:true;easing:easeInOutSine">
-          </a-sphere>
-          <a-sphere position="0.6 1.1 -3.4" radius="0.25" color="#6ee7b7"
-            animation="property:position;to:0.6 0.95 -3.4;dir:alternate;dur:1500;loop:true;easing:easeInOutSine">
-          </a-sphere>
-          <a-text value="Estado Liquido" align="center" color="#34d399" position="0 2.2 -3" scale="1.5 1.5 1.5"></a-text>`
-      },
-      gas: {
-        title: "Estado Gaseoso",
-        energy: "Energía Cinética: Alta", force: "Cohesión: Despreciable",
-        color: "#fbbf24",
-        description: "En el estado gaseoso, la energía cinética supera ampliamente las fuerzas de atracción. Las moléculas se mueven de forma caótica a altas velocidades. Un gas no posee forma ni volumen propio; se expande para ocupar la totalidad del espacio disponible.",
-        extra: "Cumple con las Leyes de los Gases Ideales (P·V = n·R·T). Las distancias intermoleculares son enormes comparadas con el tamaño de las partículas.",
-        setup3D: buildGas,
-        arObjects: `
-          <a-sphere position="0 1.5 -3" radius="0.12" color="#fbbf24"
-            animation="property:position;to:0.5 1.9 -2.7;dir:alternate;dur:700;loop:true;easing:linear">
-          </a-sphere>
-          <a-sphere position="-0.5 1.2 -3.2" radius="0.10" color="#f59e0b"
-            animation="property:position;to:0.3 1.7 -2.8;dir:alternate;dur:550;loop:true;easing:linear">
-          </a-sphere>
-          <a-sphere position="0.5 1.7 -3.3" radius="0.10" color="#fde68a"
-            animation="property:position;to:-0.4 1.1 -3.6;dir:alternate;dur:650;loop:true;easing:linear">
-          </a-sphere>
-          <a-sphere position="-0.2 1.8 -2.8" radius="0.09" color="#fbbf24"
-            animation="property:position;to:0.5 1.2 -3.5;dir:alternate;dur:800;loop:true;easing:linear">
-          </a-sphere>
-          <a-text value="Estado Gaseoso" align="center" color="#fbbf24" position="0 2.4 -3" scale="1.5 1.5 1.5"></a-text>`
-      },
-      plasma: {
-        title: "El Plasma",
-        energy: "Energía Cinética: Extrema", force: "Cohesión: Nula (Ionizado)",
-        color: "#a78bfa",
-        description: "El plasma es un gas ionizado que se forma bajo temperaturas sumamente elevadas. Los electrones se desprenden de sus núcleos, generando una mezcla de iones positivos y electrones libres. Es un excelente conductor de electricidad y responde fuertemente a fuerzas magnéticas.",
-        extra: "El estado más común en el universo visible: forma las estrellas, el Sol, los rayos atmosféricos y las lámparas de neón.",
-        setup3D: buildPlasma,
-        arObjects: `
-          <a-sphere position="0 1.4 -3" radius="0.5" color="#a78bfa"
-            material="emissive:#7c3aed;emissiveIntensity:1.5;wireframe:true"
-            animation="property:rotation;to:360 360 0;dur:2000;loop:true;easing:linear">
-          </a-sphere>
-          <a-torus position="0 1.4 -3" radius="0.7" radius-tubular="0.025" color="#ec4899"
-            animation="property:rotation;to:0 360 360;dur:1400;loop:true;easing:linear">
-          </a-torus>
-          <a-torus position="0 1.4 -3" radius="0.9" radius-tubular="0.015" color="#8b5cf6" rotation="45 0 0"
-            animation="property:rotation;to:45 360 0;dur:2200;loop:true;easing:linear">
-          </a-torus>
-          <a-text value="Plasma" align="center" color="#a78bfa" position="0 2.4 -3" scale="1.5 1.5 1.5"></a-text>`
-      },
-      bec: {
-        title: "Condensado de Bose-Einstein",
-        energy: "Energía Cinética: Casi Cero", force: "Fusión Cuántica",
-        color: "#f472b6",
-        description: "Predicho por Einstein y Bose, este estado se alcanza a temperaturas cercanas al cero absoluto (−273.15 °C). Miles de átomos se comportan exactamente como una sola entidad o 'superátomo', manifestando propiedades macroscópicas de mecánica cuántica.",
-        extra: "Superfluidez absoluta: la fricción desaparece por completo y la materia se unifica en una identidad colectiva única.",
-        setup3D: buildBEC,
-        arObjects: `
-          <a-sphere position="0 1.4 -3" radius="0.6" color="#f472b6"
-            material="opacity:0.82;emissive:#9d174d;emissiveIntensity:0.6"
-            animation="property:scale;to:1.3 1.3 1.3;dir:alternate;dur:3000;loop:true;easing:easeInOutQuad">
-          </a-sphere>
-          <a-ring position="0 1.4 -3" radius-inner="0.75" radius-outer="0.87" color="#60a5fa"
-            animation="property:rotation;to:360 0 0;dur:4000;loop:true;easing:linear">
-          </a-ring>
-          <a-ring position="0 1.4 -3" radius-inner="1.0" radius-outer="1.1" color="#f472b6" rotation="0 0 60"
-            animation="property:rotation;to:0 360 60;dur:5500;loop:true;easing:linear">
-          </a-ring>
-          <a-text value="Condensado B-E" align="center" color="#f472b6" position="0 2.5 -3" scale="1.5 1.5 1.5"></a-text>`
-      }
-    };
+  /* ══════════════════════════════════════════════
+     DATOS: estados + ejemplos de vida real
+  ══════════════════════════════════════════════ */
+  const STATES = {
+    solid:{
+      title:"Estado Sólido", color:"#60a5fa",
+      energy:"Energía Cinética: Muy Baja", force:"Cohesión: Máxima",
+      desc:"En el estado sólido las partículas están unidas por fuerzas de cohesión muy intensas. Los átomos se mantienen en posiciones fijas, vibrando ligeramente sin desplazarse. Esto otorga a los sólidos una forma definida y un volumen constante.",
+      extra:"Estructura interna organizada: comportamiento típico de cristales de hielo o metales, con orden de largo alcance.",
+      setup3D: buildSolid,
+      examples:[
+        {
+          id:"hielo", emoji:"🧊", name:"Cubo de Hielo", tag:"H₂O sólido",
+          short:"Agua congelada a 0°C",
+          desc:"El agua al congelarse forma una red cristalina hexagonal. Las moléculas H₂O se ordenan de forma rígida, creando un sólido translúcido con volumen fijo. Es uno de los sólidos más estudiados en termodinámica.",
+          fact:"El hielo es menos denso que el agua líquida: sus moléculas ocupan más espacio en la red cristalina, por eso flota.",
+          arObjects:`
+            <a-box position="0 1.3 -3" width="0.8" height="0.8" depth="0.8"
+              color="#bfdbfe" material="opacity:0.7;emissive:#1d4ed8;emissiveIntensity:0.4"
+              animation="property:rotation;to:0 360 0;dur:6000;loop:true;easing:linear">
+            </a-box>
+            <a-text value="Hielo H2O" align="center" color="#60a5fa" position="0 2.3 -3" scale="1.4 1.4 1.4"></a-text>`
+        },
+        {
+          id:"diamante", emoji:"💎", name:"Diamante", tag:"Red covalente",
+          short:"Red de carbono más dura",
+          desc:"El diamante es carbono puro en una red covalente tetraédrica, la más resistente en la naturaleza. Cada átomo de carbono forma 4 enlaces con sus vecinos, resultando en una estructura 3D extremadamente compacta y dura.",
+          fact:"Con dureza 10 en la escala de Mohs, es el mineral más duro que existe. Se usa en herramientas de corte industrial.",
+          arObjects:`
+            <a-octahedron position="0 1.4 -3" radius="0.55"
+              color="#e0f2fe" material="opacity:0.85;emissive:#075985;emissiveIntensity:0.5"
+              animation="property:rotation;to:360 360 0;dur:5000;loop:true;easing:linear">
+            </a-octahedron>
+            <a-text value="Diamante" align="center" color="#60a5fa" position="0 2.3 -3" scale="1.4 1.4 1.4"></a-text>`
+        },
+        {
+          id:"metal", emoji:"🔩", name:"Tornillo de Acero", tag:"Metal cristalino",
+          short:"Aleación de Fe y C",
+          desc:"El acero es una aleación de hierro y carbono cuyos átomos se organizan en redes metálicas cristalinas. Los electrones de valencia se mueven libremente entre los iones (mar de electrones), lo que le confiere conductividad eléctrica y maleabilidad.",
+          fact:"A pesar de su dureza, el acero puede deformarse plásticamente: los planos atómicos se deslizan entre sí sin romperse.",
+          arObjects:`
+            <a-cylinder position="0 1.3 -3" radius="0.2" height="0.9"
+              color="#94a3b8" material="emissive:#334155;emissiveIntensity:0.4"
+              animation="property:rotation;to:0 360 0;dur:4000;loop:true;easing:linear">
+            </a-cylinder>
+            <a-cylinder position="0 0.9 -3" radius="0.35" height="0.15" color="#64748b"></a-cylinder>
+            <a-text value="Acero" align="center" color="#60a5fa" position="0 2.3 -3" scale="1.4 1.4 1.4"></a-text>`
+        },
+        {
+          id:"sal", emoji:"🧂", name:"Sal de Mesa (NaCl)", tag:"Cristal iónico",
+          short:"Red de iones Na⁺ y Cl⁻",
+          desc:"La sal de mesa es un cristal iónico donde iones de sodio (Na⁺) y cloruro (Cl⁻) se alternan en una red cúbica perfecta. Las fuerzas electrostáticas entre iones opuestos mantienen la estructura extremadamente estable.",
+          fact:"El NaCl se disuelve fácilmente en agua porque las moléculas polares del agua rodean y separan los iones de la red cristalina.",
+          arObjects:`
+            <a-sphere position="0 1.3 -3" radius="0.22" color="#fde68a" material="emissive:#92400e;emissiveIntensity:0.3"
+              animation="property:rotation;to:0 360 0;dur:7000;loop:true;easing:linear"></a-sphere>
+            <a-sphere position="0.45 1.3 -3" radius="0.28" color="#a5f3fc" material="emissive:#164e63;emissiveIntensity:0.3"></a-sphere>
+            <a-sphere position="-0.45 1.3 -3" radius="0.28" color="#a5f3fc" material="emissive:#164e63;emissiveIntensity:0.3"></a-sphere>
+            <a-sphere position="0 1.75 -3" radius="0.28" color="#a5f3fc"></a-sphere>
+            <a-sphere position="0 0.85 -3" radius="0.28" color="#a5f3fc"></a-sphere>
+            <a-text value="NaCl - Sal" align="center" color="#60a5fa" position="0 2.4 -3" scale="1.4 1.4 1.4"></a-text>`
+        }
+      ]
+    },
 
-    // ── DOM refs ──
-    const buttons     = document.querySelectorAll('.btn-state');
-    const titleEl     = document.getElementById('state-title');
-    const descEl      = document.getElementById('state-description');
-    const extraEl     = document.getElementById('state-extra');
-    const energyBadge = document.getElementById('energy-badge');
-    const forceBadge  = document.getElementById('force-badge');
-    const viewerLabel = document.getElementById('viewer-label');
-    const structureEl = document.getElementById('structure');
-    const qrCanvas    = document.getElementById('qr-canvas');
-    const arUrlDisplay= document.getElementById('ar-url-display');
+    liquid:{
+      title:"Estado Líquido", color:"#34d399",
+      energy:"Energía Cinética: Moderada", force:"Cohesión: Intermedia",
+      desc:"Los líquidos representan un equilibrio dinámico entre la energía térmica y las fuerzas de cohesión. Las partículas fluyen libremente unas sobre otras, adoptando la forma del recipiente pero manteniendo volumen constante. Exhiben propiedades como la viscosidad y la tensión superficial.",
+      extra:"Fluidez: las moléculas se deslizan libremente permitiendo el transporte de materia sin perder cohesión volumétrica.",
+      setup3D: buildLiquid,
+      examples:[
+        {
+          id:"agua", emoji:"💧", name:"Agua (H₂O)", tag:"Líquido polar",
+          short:"El líquido más estudiado",
+          desc:"El agua es un líquido polar con alto punto de ebullición (100°C) gracias a sus puentes de hidrógeno. Sus moléculas se atraen fuertemente entre sí formando una red dinámica que se reorganiza constantemente, permitiendo la fluidez.",
+          fact:"El agua tiene la mayor capacidad calorífica de los líquidos comunes, lo que estabiliza el clima del planeta Tierra.",
+          arObjects:`
+            <a-sphere position="0 1.3 -3" radius="0.5" color="#38bdf8"
+              material="opacity:0.75;emissive:#0369a1;emissiveIntensity:0.5"
+              animation="property:position;to:0 1.1 -3;dir:alternate;dur:1200;loop:true;easing:easeInOutSine">
+            </a-sphere>
+            <a-sphere position="-0.55 1.4 -3.3" radius="0.28" color="#7dd3fc"
+              material="opacity:0.7"
+              animation="property:position;to:-0.55 1.2 -3.3;dir:alternate;dur:900;loop:true;easing:easeInOutSine">
+            </a-sphere>
+            <a-text value="Agua H2O" align="center" color="#34d399" position="0 2.3 -3" scale="1.4 1.4 1.4"></a-text>`
+        },
+        {
+          id:"mercurio", emoji:"🌡️", name:"Mercurio (Hg)", tag:"Metal líquido",
+          short:"Único metal líquido a 25°C",
+          desc:"El mercurio es el único metal que permanece líquido en condiciones normales (25°C). Sus átomos tienen fuerzas de cohesión relativamente débiles comparadas con otros metales, por lo que la energía térmica ambiente es suficiente para mantenerlos en estado fluido.",
+          fact:"El mercurio tiene una tensión superficial muy alta: forma glóbulos perfectamente esféricos en lugar de extenderse al derramarse.",
+          arObjects:`
+            <a-sphere position="0 1.3 -3" radius="0.45" color="#cbd5e1"
+              material="emissive:#475569;emissiveIntensity:0.6"
+              animation="property:scale;to:1.05 0.95 1.05;dir:alternate;dur:1500;loop:true;easing:easeInOutSine">
+            </a-sphere>
+            <a-text value="Mercurio Hg" align="center" color="#34d399" position="0 2.2 -3" scale="1.4 1.4 1.4"></a-text>`
+        },
+        {
+          id:"aceite", emoji:"🫒", name:"Aceite de Oliva", tag:"Líquido viscoso",
+          short:"Alta viscosidad molecular",
+          desc:"El aceite de oliva es una mezcla de triglicéridos con cadenas largas de carbono. Sus moléculas son más grandes y complejas que las del agua, lo que genera mayor resistencia al flujo (viscosidad). No se mezcla con agua por ser apolar.",
+          fact:"La viscosidad del aceite disminuye al calentarlo: las moléculas adquieren más energía cinética y se deslizan más fácilmente.",
+          arObjects:`
+            <a-torus position="0 1.3 -3" radius="0.4" radius-tubular="0.15"
+              color="#fef08a" material="opacity:0.8;emissive:#713f12;emissiveIntensity:0.3"
+              animation="property:rotation;to:0 360 0;dur:4000;loop:true;easing:linear">
+            </a-torus>
+            <a-text value="Aceite" align="center" color="#34d399" position="0 2.2 -3" scale="1.4 1.4 1.4"></a-text>`
+        },
+        {
+          id:"sangre", emoji:"🩸", name:"Sangre", tag:"Fluido no-newtoniano",
+          short:"Líquido biológico complejo",
+          desc:"La sangre es un fluido no-newtoniano compuesto por plasma (líquido) y células (sólidas). Su viscosidad cambia según la velocidad de flujo: es más fluida en arterias grandes y más viscosa en capilares. Contiene proteínas, sales y glóbulos en suspensión.",
+          fact:"El corazón humano bombea aproximadamente 5 litros de sangre por minuto. En toda una vida, bombea suficiente para llenar 3 piscinas olímpicas.",
+          arObjects:`
+            <a-sphere position="0 1.4 -3" radius="0.4" color="#ef4444"
+              material="opacity:0.85;emissive:#7f1d1d;emissiveIntensity:0.5"
+              animation="property:scale;to:1.12 1.12 1.12;dir:alternate;dur:800;loop:true;easing:easeInOutSine">
+            </a-sphere>
+            <a-sphere position="-0.5 1.3 -3.3" radius="0.18" color="#fca5a5"
+              animation="property:position;to:-0.4 1.1 -3.1;dir:alternate;dur:1100;loop:true;easing:easeInOutSine">
+            </a-sphere>
+            <a-text value="Sangre" align="center" color="#34d399" position="0 2.3 -3" scale="1.4 1.4 1.4"></a-text>`
+        }
+      ]
+    },
 
-    // ── Detectar modo AR ──
-    function checkARMode() {
-      const params = new URLSearchParams(window.location.search);
-      const arState = params.get('ar');
-      if (arState && states[arState]) {
-        activateARMode(arState);
-        return true;
-      }
-      return false;
+    gas:{
+      title:"Estado Gaseoso", color:"#fbbf24",
+      energy:"Energía Cinética: Alta", force:"Cohesión: Despreciable",
+      desc:"En el estado gaseoso la energía cinética supera ampliamente las fuerzas de atracción. Las moléculas se mueven de forma caótica a altas velocidades. Un gas no posee forma ni volumen propio: se expande para ocupar todo el espacio disponible.",
+      extra:"Cumple las Leyes de los Gases Ideales (P·V = n·R·T). Las distancias intermoleculares son enormes comparadas con el tamaño de las partículas.",
+      setup3D: buildGas,
+      examples:[
+        {
+          id:"aire", emoji:"🌬️", name:"Aire", tag:"Mezcla gaseosa",
+          short:"78% N₂ · 21% O₂ · 1% Ar",
+          desc:"El aire es una mezcla de gases principalmente N₂ y O₂. Sus moléculas se mueven a velocidades de ~500 m/s a temperatura ambiente, chocando entre sí millones de veces por segundo. La presión atmosférica es resultado de estos choques contra las superficies.",
+          fact:"A nivel del mar, en 1 cm³ de aire hay aproximadamente 2.7 × 10¹⁹ moléculas (27 trillones de moléculas).",
+          arObjects:`
+            <a-sphere position="0.3 1.6 -3" radius="0.09" color="#bae6fd"
+              animation="property:position;to:-0.4 1.2 -2.8;dir:alternate;dur:600;loop:true;easing:linear"></a-sphere>
+            <a-sphere position="-0.4 1.2 -3.2" radius="0.08" color="#e0f2fe"
+              animation="property:position;to:0.5 1.7 -3.4;dir:alternate;dur:450;loop:true;easing:linear"></a-sphere>
+            <a-sphere position="0.5 1.0 -2.9" radius="0.10" color="#fbbf24"
+              animation="property:position;to:-0.2 1.6 -3.3;dir:alternate;dur:700;loop:true;easing:linear"></a-sphere>
+            <a-sphere position="-0.1 1.8 -3.1" radius="0.08" color="#bae6fd"
+              animation="property:position;to:0.4 1.0 -2.7;dir:alternate;dur:550;loop:true;easing:linear"></a-sphere>
+            <a-text value="Aire" align="center" color="#fbbf24" position="0 2.4 -3" scale="1.4 1.4 1.4"></a-text>`
+        },
+        {
+          id:"vapor", emoji:"♨️", name:"Vapor de Agua", tag:"Gas de H₂O",
+          short:"Agua en estado gaseoso",
+          desc:"El vapor de agua se forma cuando el agua líquida absorbe suficiente energía para romper los puentes de hidrógeno entre moléculas. Cada molécula H₂O escapa como gas independiente, invisible al ojo humano, expandiéndose en todas direcciones.",
+          fact:"El vapor de agua es el gas de efecto invernadero más abundante en la atmósfera terrestre, responsable de más del 50% del efecto total.",
+          arObjects:`
+            <a-sphere position="0 1.5 -3" radius="0.08" color="#e2e8f0" material="opacity:0.5"
+              animation="property:position;to:0.3 2.0 -2.8;dir:alternate;dur:800;loop:true;easing:easeInOutSine"></a-sphere>
+            <a-sphere position="0.3 1.2 -3.1" radius="0.08" color="#cbd5e1" material="opacity:0.5"
+              animation="property:position;to:-0.3 1.8 -3.3;dir:alternate;dur:700;loop:true;easing:easeInOutSine"></a-sphere>
+            <a-sphere position="-0.3 1.7 -2.9" radius="0.08" color="#f1f5f9" material="opacity:0.5"
+              animation="property:position;to:0.4 1.1 -3.2;dir:alternate;dur:900;loop:true;easing:easeInOutSine"></a-sphere>
+            <a-text value="Vapor H2O" align="center" color="#fbbf24" position="0 2.4 -3" scale="1.4 1.4 1.4"></a-text>`
+        },
+        {
+          id:"co2", emoji:"🏭", name:"Dióxido de Carbono (CO₂)", tag:"Gas molecular",
+          short:"Gas de respiración y efecto invernadero",
+          desc:"El CO₂ es una molécula lineal (O=C=O) que se comporta como gas ideal a temperatura ambiente. Lo producen la respiración celular, la combustión y los volcanes. Es soluble en agua, formando ácido carbónico (H₂CO₃), lo que acidifica océanos.",
+          fact:"Las plantas convierten CO₂ en glucosa durante la fotosíntesis usando luz solar, produciendo el O₂ que respiramos.",
+          arObjects:`
+            <a-sphere position="0 1.4 -3" radius="0.22" color="#fde68a" material="emissive:#92400e;emissiveIntensity:0.3"
+              animation="property:rotation;to:0 360 0;dur:5000;loop:true;easing:linear"></a-sphere>
+            <a-sphere position="-0.5 1.4 -3" radius="0.18" color="#bfdbfe"></a-sphere>
+            <a-sphere position="0.5 1.4 -3" radius="0.18" color="#bfdbfe"></a-sphere>
+            <a-cylinder position="-0.25 1.4 -3" radius="0.04" height="0.3" rotation="0 0 90" color="#94a3b8"></a-cylinder>
+            <a-cylinder position="0.25 1.4 -3" radius="0.04" height="0.3" rotation="0 0 90" color="#94a3b8"></a-cylinder>
+            <a-text value="CO2" align="center" color="#fbbf24" position="0 2.3 -3" scale="1.4 1.4 1.4"></a-text>`
+        },
+        {
+          id:"helio", emoji:"🎈", name:"Helio (He)", tag:"Gas noble",
+          short:"Gas monoatómico más ligero",
+          desc:"El helio es un gas noble monoatómico: cada partícula es un solo átomo con capa electrónica completa. No forma moléculas ni reacciona con otros elementos. Es el segundo elemento más abundante del universo y el gas más difícil de licuar (−269°C).",
+          fact:"El helio se escapa de la atmósfera terrestre hacia el espacio porque es tan ligero que su velocidad supera la de escape gravitacional.",
+          arObjects:`
+            <a-sphere position="0 1.5 -3" radius="0.14" color="#fde68a" material="emissive:#713f12;emissiveIntensity:0.5"
+              animation="property:position;to:0.5 1.9 -2.8;dir:alternate;dur:700;loop:true;easing:linear"></a-sphere>
+            <a-sphere position="-0.5 1.3 -3.2" radius="0.14" color="#fde68a" material="emissive:#713f12;emissiveIntensity:0.5"
+              animation="property:position;to:0.2 1.1 -3.4;dir:alternate;dur:550;loop:true;easing:linear"></a-sphere>
+            <a-sphere position="0.4 1.0 -3" radius="0.14" color="#fde68a" material="emissive:#713f12;emissiveIntensity:0.5"
+              animation="property:position;to:-0.4 1.6 -3.2;dir:alternate;dur:820;loop:true;easing:linear"></a-sphere>
+            <a-text value="Helio He" align="center" color="#fbbf24" position="0 2.4 -3" scale="1.4 1.4 1.4"></a-text>`
+        }
+      ]
+    },
+
+    plasma:{
+      title:"El Plasma", color:"#a78bfa",
+      energy:"Energía Cinética: Extrema", force:"Cohesión: Nula (Ionizado)",
+      desc:"El plasma es un gas ionizado que se forma bajo temperaturas sumamente elevadas o campos electromagnéticos intensos. Los electrones se desprenden de sus núcleos generando una mezcla de iones positivos y electrones libres. Conduce electricidad y responde a fuerzas magnéticas.",
+      extra:"El estado más común en el universo visible: forma las estrellas, el Sol, los rayos atmosféricos y las lámparas de neón.",
+      setup3D: buildPlasma,
+      examples:[
+        {
+          id:"sol", emoji:"☀️", name:"El Sol", tag:"Plasma estelar",
+          short:"Bola de plasma a 15 millones °C",
+          desc:"El Sol es una esfera de plasma compuesta principalmente de hidrógeno (73%) y helio (25%) ionizados. En su núcleo, la temperatura alcanza 15 millones de grados Celsius, suficiente para fusionar núcleos de hidrógeno en helio, liberando enormes cantidades de energía.",
+          fact:"Cada segundo, el Sol convierte 600 millones de toneladas de hidrógeno en helio mediante fusión nuclear, liberando energía equivalente a 10²⁶ joules.",
+          arObjects:`
+            <a-sphere position="0 1.4 -3" radius="0.6" color="#fbbf24"
+              material="emissive:#d97706;emissiveIntensity:2"
+              animation="property:scale;to:1.05 1.05 1.05;dir:alternate;dur:1500;loop:true">
+            </a-sphere>
+            <a-torus position="0 1.4 -3" radius="0.9" radius-tubular="0.04" color="#f59e0b" material="opacity:0.4"
+              animation="property:rotation;to:0 360 0;dur:8000;loop:true;easing:linear">
+            </a-torus>
+            <a-text value="El Sol" align="center" color="#a78bfa" position="0 2.4 -3" scale="1.4 1.4 1.4"></a-text>`
+        },
+        {
+          id:"rayo", emoji:"⚡", name:"Rayo Atmosférico", tag:"Plasma natural",
+          short:"Canal de plasma a 30,000°C",
+          desc:"Un rayo es un canal de plasma momentáneo que se forma cuando el campo eléctrico entre nubes o entre nube y suelo supera el límite de ruptura dieléctrica del aire (~3 MV/m). El canal de plasma alcanza temperaturas de 30,000°C en microsegundos.",
+          fact:"La expansión explosiva del canal de plasma calienta el aire circundante, produciendo una onda de presión que escuchamos como trueno.",
+          arObjects:`
+            <a-cylinder position="0 1.9 -3" radius="0.03" height="1.2"
+              color="#fde68a" material="emissive:#ca8a04;emissiveIntensity:3"
+              animation="property:opacity;to:0.2;dir:alternate;dur:100;loop:true">
+            </a-cylinder>
+            <a-cylinder position="-0.05 1.3 -3" rotation="0 0 15" radius="0.03" height="0.6"
+              color="#fde68a" material="emissive:#ca8a04;emissiveIntensity:3"
+              animation="property:opacity;to:0.2;dir:alternate;dur:100;loop:true">
+            </a-cylinder>
+            <a-text value="Rayo" align="center" color="#a78bfa" position="0 2.7 -3" scale="1.4 1.4 1.4"></a-text>`
+        },
+        {
+          id:"neon", emoji:"💡", name:"Lámpara de Neón", tag:"Plasma frío",
+          short:"Plasma ionizado a baja presión",
+          desc:"Las lámparas de neón contienen gas noble a baja presión. Al aplicar alto voltaje, los electrones se desprenden de los átomos (ionización), creando un plasma frío que emite luz al recombinarse los electrones con los iones. El color depende del gas usado.",
+          fact:"El neón emite luz rojo-naranja. Otros gases producen colores distintos: el argón da azul-violeta, el mercurio da azul-verde.",
+          arObjects:`
+            <a-torus position="0 1.4 -3" radius="0.6" radius-tubular="0.07"
+              color="#f472b6" material="emissive:#be185d;emissiveIntensity:2"
+              animation="property:rotation;to:0 360 0;dur:4000;loop:true;easing:linear">
+            </a-torus>
+            <a-torus position="0 1.4 -3" radius="0.6" radius-tubular="0.07" rotation="0 0 90"
+              color="#a78bfa" material="emissive:#7c3aed;emissiveIntensity:2"
+              animation="property:rotation;to:90 360 0;dur:3000;loop:true;easing:linear">
+            </a-torus>
+            <a-text value="Neon" align="center" color="#a78bfa" position="0 2.4 -3" scale="1.4 1.4 1.4"></a-text>`
+        },
+        {
+          id:"aurora", emoji:"🌌", name:"Aurora Boreal", tag:"Plasma atmosférico",
+          short:"Plasma solar + campo magnético",
+          desc:"Las auroras boreales ocurren cuando partículas del viento solar (plasma) son guiadas por el campo magnético terrestre hacia los polos. Al colisionar con moléculas de la atmósfera superior, las excitan. Al desexcitarse, emiten fotones de distintos colores.",
+          fact:"El verde (a 557.7 nm) viene del oxígeno a 100 km de altura. El rojo viene del oxígeno a 200 km. El azul/violeta viene del nitrógeno.",
+          arObjects:`
+            <a-ring position="0 1.4 -3" radius-inner="0.5" radius-outer="0.7"
+              color="#34d399" material="opacity:0.7;emissive:#065f46;emissiveIntensity:1"
+              animation="property:rotation;to:360 30 0;dur:5000;loop:true;easing:linear">
+            </a-ring>
+            <a-ring position="0 1.4 -3" radius-inner="0.7" radius-outer="0.85"
+              color="#a78bfa" material="opacity:0.5;emissive:#7c3aed;emissiveIntensity:1"
+              animation="property:rotation;to:360 -20 0;dur:7000;loop:true;easing:linear">
+            </a-ring>
+            <a-ring position="0 1.4 -3" radius-inner="0.85" radius-outer="0.95"
+              color="#f472b6" material="opacity:0.4;emissive:#9d174d;emissiveIntensity:1"
+              animation="property:rotation;to:360 10 0;dur:9000;loop:true;easing:linear">
+            </a-ring>
+            <a-text value="Aurora Boreal" align="center" color="#a78bfa" position="0 2.5 -3" scale="1.4 1.4 1.4"></a-text>`
+        }
+      ]
+    },
+
+    bec:{
+      title:"Condensado de Bose-Einstein", color:"#f472b6",
+      energy:"Energía Cinética: Casi Cero", force:"Fusión Cuántica",
+      desc:"Predicho por Einstein y Bose, este estado se alcanza a temperaturas cercanas al cero absoluto (−273.15°C). Las funciones de onda cuántica de miles de átomos se solapan y el sistema se comporta como una única entidad: el 'superátomo'.",
+      extra:"Superfluidez absoluta: la fricción desaparece por completo y la materia se unifica en una identidad colectiva única.",
+      setup3D: buildBEC,
+      examples:[
+        {
+          id:"rubidio", emoji:"⚗️", name:"Rubidio-87 enfriado", tag:"Primer BEC experimental",
+          short:"Primer BEC creado en 1995",
+          desc:"En 1995, Cornell y Wieman enfriaron átomos de Rubidio-87 hasta 170 nanokelvin usando trampas láser y enfriamiento evaporativo. A esa temperatura, cerca de 2,000 átomos colapsaron en el mismo estado cuántico base, formando el primer BEC artificial de la historia.",
+          fact:"Este logro les valió el Premio Nobel de Física 2001. La temperatura alcanzada es 10 millones de veces más fría que el espacio interestelar.",
+          arObjects:`
+            <a-sphere position="0 1.4 -3" radius="0.55" color="#f472b6"
+              material="opacity:0.8;emissive:#9d174d;emissiveIntensity:0.6"
+              animation="property:scale;to:1.25 1.25 1.25;dir:alternate;dur:2800;loop:true;easing:easeInOutQuad">
+            </a-sphere>
+            <a-ring position="0 1.4 -3" radius-inner="0.65" radius-outer="0.75" color="#c084fc"
+              animation="property:rotation;to:360 0 0;dur:4000;loop:true;easing:linear">
+            </a-ring>
+            <a-text value="BEC Rubidio-87" align="center" color="#f472b6" position="0 2.4 -3" scale="1.3 1.3 1.3"></a-text>`
+        },
+        {
+          id:"superfluido", emoji:"🌀", name:"Helio Superfluido (He-II)", tag:"BEC macroscópico",
+          short:"Fluye sin fricción ni viscosidad",
+          desc:"El helio-4 enfriado por debajo de −271°C (2.17 K) entra en una fase superfluida relacionada con la condensación de Bose-Einstein. En este estado, el helio fluye sin ninguna viscosidad, trepa por las paredes de los recipientes y transmite calor instantáneamente.",
+          fact:"Un superfluido en un recipiente giratorio eventualmente 'escapa' trepando por las paredes y goteando por fuera, desafiando la gravedad aparentemente.",
+          arObjects:`
+            <a-torus position="0 1.4 -3" radius="0.5" radius-tubular="0.12"
+              color="#c084fc" material="opacity:0.75;emissive:#7e22ce;emissiveIntensity:0.6"
+              animation="property:rotation;to:0 360 0;dur:3000;loop:true;easing:linear">
+            </a-torus>
+            <a-torus position="0 1.4 -3" radius="0.5" radius-tubular="0.12" rotation="90 0 0"
+              color="#f0abfc" material="opacity:0.5;emissive:#7e22ce;emissiveIntensity:0.4"
+              animation="property:rotation;to:90 0 360;dur:5000;loop:true;easing:linear">
+            </a-torus>
+            <a-text value="He Superfluido" align="center" color="#f472b6" position="0 2.4 -3" scale="1.3 1.3 1.3"></a-text>`
+        },
+        {
+          id:"laser", emoji:"🔬", name:"Láser de Átomo BEC", tag:"Óptica cuántica",
+          short:"Ondas de materia coherentes",
+          desc:"Al liberar gradualmente átomos de un BEC, se obtiene un 'láser de átomos': un haz coherente de materia análogo a un láser óptico. Las ondas cuánticas de todos los átomos están perfectamente en fase, igual que los fotones de un láser convencional.",
+          fact:"Este láser de átomos podría usarse para construir giroscopios cuánticos y acelerómetros de precisión extrema para navegación.",
+          arObjects:`
+            <a-cylinder position="0 1.5 -3" radius="0.08" height="1.4"
+              color="#f0abfc" material="emissive:#a21caf;emissiveIntensity:1.5; opacity:0.9"
+              animation="property:scale;to:1.2 1 1.2;dir:alternate;dur:600;loop:true">
+            </a-cylinder>
+            <a-sphere position="0 2.2 -3" radius="0.2" color="#f472b6"
+              material="emissive:#9d174d;emissiveIntensity:0.8"
+              animation="property:scale;to:1.3 1.3 1.3;dir:alternate;dur:1200;loop:true">
+            </a-sphere>
+            <a-text value="Laser de Atomo" align="center" color="#f472b6" position="0 2.9 -3" scale="1.3 1.3 1.3"></a-text>`
+        },
+        {
+          id:"superconductor", emoji:"🧲", name:"Superconductor Cuántico", tag:"BEC de pares Cooper",
+          short:"Resistencia eléctrica cero",
+          desc:"En un superconductor enfriado bajo su temperatura crítica, los pares de electrones (pares de Cooper) forman un condensado de Bose-Einstein. Este condensado fluye sin resistencia eléctrica. La superconductividad es una manifestación macroscópica de la mecánica cuántica.",
+          fact:"Los trenes de levitación magnética (Maglev) usan superconductores para flotar sobre rieles magnéticos sin fricción, alcanzando +600 km/h.",
+          arObjects:`
+            <a-box position="0 1.1 -3" width="1.0" height="0.2" depth="0.6"
+              color="#475569" material="emissive:#1e293b;emissiveIntensity:0.4">
+            </a-box>
+            <a-box position="0 1.5 -3" width="0.7" height="0.18" depth="0.45"
+              color="#f472b6" material="emissive:#9d174d;emissiveIntensity:0.5"
+              animation="property:position;to:0 1.6 -3;dir:alternate;dur:2000;loop:true;easing:easeInOutSine">
+            </a-box>
+            <a-text value="Superconductor" align="center" color="#f472b6" position="0 2.4 -3" scale="1.3 1.3 1.3"></a-text>`
+        }
+      ]
     }
+  };
 
-    function activateARMode(stateKey) {
-      const d = states[stateKey];
-      document.body.classList.add('ar-mode');
-      document.getElementById('ar-title-overlay').textContent = '⚛️ ' + d.title;
+  /* ══════ DOM ══════ */
+  const buttons      = document.querySelectorAll('.btn-state');
+  const titleEl      = document.getElementById('state-title');
+  const descEl       = document.getElementById('state-description');
+  const extraEl      = document.getElementById('state-extra');
+  const energyBadge  = document.getElementById('energy-badge');
+  const forceBadge   = document.getElementById('force-badge');
+  const viewerLabel  = document.getElementById('viewer-label');
+  const structureEl  = document.getElementById('structure');
+  const exGrid       = document.getElementById('examples-grid');
+  const exDetail     = document.getElementById('ex-detail');
 
-      const arHTML = `
-        <a-scene
-          embedded
-          arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
-          vr-mode-ui="enabled: false"
-          renderer="logarithmicDepthBuffer: true; antialias: true;"
-          style="width:100vw;height:100vh;">
+  let currentState = 'solid';
+  let currentExIdx = 0;
 
-          <a-marker preset="hiro">
-            ${d.arObjects}
-          </a-marker>
+  /* ══════ RENDER ESTADO ══════ */
+  function updateState(key) {
+    currentState = key;
+    const d = STATES[key];
 
-          <a-entity camera></a-entity>
-        </a-scene>`;
+    titleEl.textContent      = d.title;
+    descEl.textContent       = d.desc;
+    extraEl.textContent      = d.extra;
+    extraEl.style.color      = d.color;
+    energyBadge.textContent  = d.energy;
+    energyBadge.style.color  = d.color;
+    forceBadge.textContent   = d.force;
+    viewerLabel.textContent  = d.title;
+    viewerLabel.style.color  = d.color;
 
-      document.getElementById('ar-container').innerHTML = arHTML;
-    }
+    // Rebuild 3D
+    structureEl.innerHTML = '';
+    const mg = document.getElementById('molecule-group');
+    mg.removeAttribute('animation');
+    void mg.offsetWidth;
+    d.setup3D();
 
-    // ── Actualizar estado (modo normal) ──
-    function updateState(key) {
-      const d = states[key];
+    // Render ejemplos
+    renderExamples(key);
 
-      titleEl.textContent        = d.title;
-      descEl.textContent         = d.description;
-      extraEl.textContent        = d.extra;
-      extraEl.style.color        = d.color;
-      energyBadge.textContent    = d.energy;
-      energyBadge.style.color    = d.color;
-      forceBadge.textContent     = d.force;
-      viewerLabel.textContent    = d.title;
-      viewerLabel.style.color    = d.color;
+    // Seleccionar primer ejemplo
+    selectExample(key, 0);
 
-      // Generar QR con URL pública real
-      const arURL = BASE_URL + '?ar=' + key;
-      arUrlDisplay.textContent = arURL;
-      qrCanvas.innerHTML = '';
-      new QRCode(qrCanvas, {
-        text: arURL,
-        width: 88, height: 88,
-        colorDark: '#080d1a', colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.M
-      });
+    // Fade
+    ['state-header','badges-wrap'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(!el)return;
+      el.classList.remove('fade'); void el.offsetWidth; el.classList.add('fade');
+    });
+  }
 
-      // Rebuild 3D
-      structureEl.innerHTML = '';
-      const mg = document.getElementById('molecule-group');
-      mg.removeAttribute('animation');
-      void mg.offsetWidth;
-      d.setup3D();
+  /* ══════ RENDER GRID DE EJEMPLOS ══════ */
+  function renderExamples(key) {
+    const d = STATES[key];
+    exGrid.innerHTML = '';
+    d.examples.forEach((ex, i) => {
+      const card = document.createElement('div');
+      card.className = 'ex-card';
+      card.style.color = d.color;
+      card.innerHTML = `
+        <div class="ex-emoji">${ex.emoji}</div>
+        <div class="ex-name">${ex.name}</div>
+        <div class="ex-short">${ex.short}</div>`;
+      card.addEventListener('click', () => selectExample(key, i));
+      exGrid.appendChild(card);
+    });
+  }
 
-      // Fade
-      ['state-header','badges-wrap'].forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.classList.remove('fade'); void el.offsetWidth; el.classList.add('fade');
-      });
-    }
+  /* ══════ SELECCIONAR EJEMPLO + QR ══════ */
+  function selectExample(stateKey, idx) {
+    currentExIdx = idx;
+    const d   = STATES[stateKey];
+    const ex  = d.examples[idx];
 
-    // ── Constructores 3D ──
-    function buildSolid() {
-      const size = 3, sp = 0.38, off = ((size-1)*sp)/2;
-      for (let x=0;x<size;x++) for (let y=0;y<size;y++) for (let z=0;z<size;z++) {
-        const s = document.createElement('a-sphere');
-        s.setAttribute('radius','0.1');
-        s.setAttribute('color','#60a5fa');
-        s.setAttribute('material','emissive:#1d4ed8;emissiveIntensity:0.4');
-        s.setAttribute('position',`${x*sp-off} ${y*sp-off} ${z*sp-off}`);
-        s.setAttribute('animation',`property:scale;to:1.08 1.08 1.08;dir:alternate;dur:${180+Math.random()*80};loop:true`);
-        structureEl.appendChild(s);
-      }
-      document.getElementById('molecule-group').setAttribute('animation','property:rotation;to:0 360 0;dur:20000;loop:true;easing:linear');
-    }
-
-    function buildLiquid() {
-      document.getElementById('molecule-group').setAttribute('animation','property:rotation;to:0 360 0;dur:12000;loop:true;easing:linear');
-      for (let i=0;i<28;i++) {
-        const s = document.createElement('a-sphere');
-        const r = 0.09 + Math.random()*0.04;
-        s.setAttribute('radius', String(r));
-        s.setAttribute('color','#34d399');
-        s.setAttribute('material','emissive:#065f46;emissiveIntensity:0.4');
-        const px=(Math.random()-0.5)*1.8, py=(Math.random()-0.5)*1.2, pz=(Math.random()-0.5)*1.0;
-        s.setAttribute('position',`${px} ${py} ${pz}`);
-        s.setAttribute('animation',`property:position;to:${px} ${py-0.18} ${pz};dir:alternate;dur:${900+Math.random()*800};loop:true;easing:easeInOutSine`);
-        structureEl.appendChild(s);
-      }
-    }
-
-    function buildGas() {
-      for (let i=0;i<32;i++) {
-        const s = document.createElement('a-sphere');
-        s.setAttribute('radius','0.07');
-        s.setAttribute('color','#fbbf24');
-        s.setAttribute('material','emissive:#92400e;emissiveIntensity:0.4');
-        const rng=2.2;
-        const px=(Math.random()-0.5)*rng, py=(Math.random()-0.5)*rng, pz=(Math.random()-0.5)*rng;
-        s.setAttribute('position',`${px} ${py} ${pz}`);
-        const tx=(Math.random()-0.5)*rng, ty=(Math.random()-0.5)*rng, tz=(Math.random()-0.5)*rng;
-        s.setAttribute('animation',`property:position;to:${tx} ${ty} ${tz};dur:${600+Math.random()*1400};dir:alternate;loop:true;easing:linear`);
-        structureEl.appendChild(s);
-      }
-    }
-
-    function buildPlasma() {
-      const core = document.createElement('a-sphere');
-      core.setAttribute('radius','0.55'); core.setAttribute('color','#a78bfa');
-      core.setAttribute('material','emissive:#7c3aed;emissiveIntensity:1.5;wireframe:true');
-      core.setAttribute('animation','property:rotation;to:360 360 0;dur:2500;loop:true;easing:linear');
-
-      const t1 = document.createElement('a-torus');
-      t1.setAttribute('radius','0.75'); t1.setAttribute('radius-tubular','0.025');
-      t1.setAttribute('color','#ec4899');
-      t1.setAttribute('animation','property:rotation;to:0 360 360;dur:1400;loop:true;easing:linear');
-
-      const t2 = document.createElement('a-torus');
-      t2.setAttribute('radius','0.9'); t2.setAttribute('radius-tubular','0.015');
-      t2.setAttribute('color','#8b5cf6'); t2.setAttribute('rotation','45 0 0');
-      t2.setAttribute('animation','property:rotation;to:45 360 0;dur:2000;loop:true;easing:linear');
-
-      [core,t1,t2].forEach(e=>structureEl.appendChild(e));
-    }
-
-    function buildBEC() {
-      const sup = document.createElement('a-sphere');
-      sup.setAttribute('radius','0.65'); sup.setAttribute('color','#f472b6');
-      sup.setAttribute('material','opacity:0.82;emissive:#9d174d;emissiveIntensity:0.5');
-      sup.setAttribute('animation','property:scale;to:1.35 1.35 1.35;dir:alternate;dur:3200;loop:true;easing:easeInOutQuad');
-
-      const r1 = document.createElement('a-ring');
-      r1.setAttribute('radius-inner','0.75'); r1.setAttribute('radius-outer','0.87');
-      r1.setAttribute('color','#60a5fa');
-      r1.setAttribute('animation','property:rotation;to:360 0 0;dur:4200;loop:true;easing:linear');
-
-      const r2 = document.createElement('a-ring');
-      r2.setAttribute('radius-inner','1.0'); r2.setAttribute('radius-outer','1.1');
-      r2.setAttribute('color','#f472b6'); r2.setAttribute('rotation','0 0 60');
-      r2.setAttribute('animation','property:rotation;to:0 360 60;dur:5500;loop:true;easing:linear');
-
-      [sup,r1,r2].forEach(e=>structureEl.appendChild(e));
-    }
-
-    // ── Botones ──
-    buttons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        buttons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        updateState(btn.dataset.state);
-      });
+    // Marcar card activa
+    document.querySelectorAll('.ex-card').forEach((c,i)=>{
+      c.classList.toggle('active-ex', i===idx);
     });
 
-    // ── Arranque ──
-    if (!checkARMode()) {
-      updateState('solid');
+    // Rellenar detalle
+    document.getElementById('ex-emoji').textContent = ex.emoji;
+    document.getElementById('ex-name').textContent  = ex.name;
+    const badge = document.getElementById('ex-badge');
+    badge.textContent   = ex.tag;
+    badge.style.color   = d.color;
+    badge.style.borderColor = d.color;
+    document.getElementById('ex-desc').textContent  = ex.desc;
+    const fact = document.getElementById('ex-fact');
+    fact.textContent    = '💡 ' + ex.fact;
+    fact.style.borderColor = d.color;
+
+    // QR con URL pública real: ?ar=solid&ex=hielo
+    const arURL = `${BASE}?ar=${stateKey}&ex=${ex.id}`;
+    document.getElementById('ex-ar-url').textContent = arURL;
+    const qrWrap = document.getElementById('ex-qr');
+    qrWrap.innerHTML = '';
+    new QRCode(qrWrap, {
+      text: arURL, width:80, height:80,
+      colorDark:'#080d1a', colorLight:'#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+
+    exDetail.style.display = 'flex';
+    exDetail.classList.remove('fade');
+    void exDetail.offsetWidth;
+    exDetail.classList.add('fade');
+  }
+
+  /* ══════ MODO AR ══════ */
+  function checkARMode() {
+    const p = new URLSearchParams(window.location.search);
+    const arState = p.get('ar');
+    const arEx    = p.get('ex');
+    if (!arState || !STATES[arState]) return false;
+
+    const d = STATES[arState];
+    // Buscar ejemplo específico o usar el primero
+    const ex = arEx ? d.examples.find(e=>e.id===arEx) : d.examples[0];
+    const label = ex ? `${ex.emoji} ${ex.name}` : d.title;
+
+    document.body.classList.add('ar-mode');
+    document.getElementById('ar-label').textContent = label;
+
+    const arHTML = `
+      <a-scene embedded
+        arjs="sourceType:webcam;debugUIEnabled:false;detectionMode:mono_and_matrix;matrixCodeType:3x3;"
+        vr-mode-ui="enabled:false"
+        renderer="logarithmicDepthBuffer:true;antialias:true;"
+        style="width:100vw;height:100vh;">
+        <a-marker preset="hiro">
+          ${ex ? ex.arObjects : d.examples[0].arObjects}
+        </a-marker>
+        <a-entity camera></a-entity>
+      </a-scene>`;
+    document.getElementById('ar-container').innerHTML = arHTML;
+    return true;
+  }
+
+  /* ══════ 3D BUILDERS ══════ */
+  function buildSolid() {
+    const size=3, sp=0.38, off=((size-1)*sp)/2;
+    for(let x=0;x<size;x++) for(let y=0;y<size;y++) for(let z=0;z<size;z++){
+      const s=document.createElement('a-sphere');
+      s.setAttribute('radius','0.1'); s.setAttribute('color','#60a5fa');
+      s.setAttribute('material','emissive:#1d4ed8;emissiveIntensity:0.4');
+      s.setAttribute('position',`${x*sp-off} ${y*sp-off} ${z*sp-off}`);
+      s.setAttribute('animation',`property:scale;to:1.08 1.08 1.08;dir:alternate;dur:${180+Math.random()*80};loop:true`);
+      structureEl.appendChild(s);
     }
+    document.getElementById('molecule-group').setAttribute('animation','property:rotation;to:0 360 0;dur:20000;loop:true;easing:linear');
+  }
+  function buildLiquid() {
+    document.getElementById('molecule-group').setAttribute('animation','property:rotation;to:0 360 0;dur:12000;loop:true;easing:linear');
+    for(let i=0;i<28;i++){
+      const s=document.createElement('a-sphere');
+      s.setAttribute('radius',String(0.09+Math.random()*0.04)); s.setAttribute('color','#34d399');
+      s.setAttribute('material','emissive:#065f46;emissiveIntensity:0.4');
+      const px=(Math.random()-.5)*1.8, py=(Math.random()-.5)*1.2, pz=(Math.random()-.5)*1.0;
+      s.setAttribute('position',`${px} ${py} ${pz}`);
+      s.setAttribute('animation',`property:position;to:${px} ${py-.18} ${pz};dir:alternate;dur:${900+Math.random()*800};loop:true;easing:easeInOutSine`);
+      structureEl.appendChild(s);
+    }
+  }
+  function buildGas() {
+    for(let i=0;i<32;i++){
+      const s=document.createElement('a-sphere');
+      s.setAttribute('radius','0.07'); s.setAttribute('color','#fbbf24');
+      s.setAttribute('material','emissive:#92400e;emissiveIntensity:0.4');
+      const rng=2.2;
+      const px=(Math.random()-.5)*rng, py=(Math.random()-.5)*rng, pz=(Math.random()-.5)*rng;
+      s.setAttribute('position',`${px} ${py} ${pz}`);
+      const tx=(Math.random()-.5)*rng, ty=(Math.random()-.5)*rng, tz=(Math.random()-.5)*rng;
+      s.setAttribute('animation',`property:position;to:${tx} ${ty} ${tz};dur:${600+Math.random()*1400};dir:alternate;loop:true;easing:linear`);
+      structureEl.appendChild(s);
+    }
+  }
+  function buildPlasma() {
+    const core=document.createElement('a-sphere');
+    core.setAttribute('radius','0.55'); core.setAttribute('color','#a78bfa');
+    core.setAttribute('material','emissive:#7c3aed;emissiveIntensity:1.5;wireframe:true');
+    core.setAttribute('animation','property:rotation;to:360 360 0;dur:2500;loop:true;easing:linear');
+    const t1=document.createElement('a-torus');
+    t1.setAttribute('radius','0.75'); t1.setAttribute('radius-tubular','0.025'); t1.setAttribute('color','#ec4899');
+    t1.setAttribute('animation','property:rotation;to:0 360 360;dur:1400;loop:true;easing:linear');
+    const t2=document.createElement('a-torus');
+    t2.setAttribute('radius','0.9'); t2.setAttribute('radius-tubular','0.015'); t2.setAttribute('color','#8b5cf6'); t2.setAttribute('rotation','45 0 0');
+    t2.setAttribute('animation','property:rotation;to:45 360 0;dur:2000;loop:true;easing:linear');
+    [core,t1,t2].forEach(e=>structureEl.appendChild(e));
+  }
+  function buildBEC() {
+    const sup=document.createElement('a-sphere');
+    sup.setAttribute('radius','0.65'); sup.setAttribute('color','#f472b6');
+    sup.setAttribute('material','opacity:0.82;emissive:#9d174d;emissiveIntensity:0.5');
+    sup.setAttribute('animation','property:scale;to:1.35 1.35 1.35;dir:alternate;dur:3200;loop:true;easing:easeInOutQuad');
+    const r1=document.createElement('a-ring');
+    r1.setAttribute('radius-inner','0.75'); r1.setAttribute('radius-outer','0.87'); r1.setAttribute('color','#60a5fa');
+    r1.setAttribute('animation','property:rotation;to:360 0 0;dur:4200;loop:true;easing:linear');
+    const r2=document.createElement('a-ring');
+    r2.setAttribute('radius-inner','1.0'); r2.setAttribute('radius-outer','1.1'); r2.setAttribute('color','#f472b6'); r2.setAttribute('rotation','0 0 60');
+    r2.setAttribute('animation','property:rotation;to:0 360 60;dur:5500;loop:true;easing:linear');
+    [sup,r1,r2].forEach(e=>structureEl.appendChild(e));
+  }
+
+  /* ══════ BOTONES ESTADO ══════ */
+  buttons.forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      buttons.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      updateState(btn.dataset.state);
+    });
+  });
+
+  /* ══════ ARRANQUE ══════ */
+  if(!checkARMode()) updateState('solid');
   </script>
 </body>
 </html>

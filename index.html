@@ -4,8 +4,11 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Lab Virtual · Estados de la Materia</title>
+  <!-- A-Frame estable -->
   <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <!-- AR.js desde CDN oficial confiable -->
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
+  <!-- QR Code -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
@@ -44,6 +47,15 @@
       font-family:var(--mono);font-size:11px;
     }
     body.ar-mode #ar-hint{display:block;}
+
+    /* ── AR Error banner ── */
+    #ar-error{
+      display:none;position:fixed;top:60px;left:50%;transform:translateX(-50%);
+      background:#7f1d1d;border:1px solid #ef4444;color:#fca5a5;
+      padding:10px 18px;border-radius:10px;font-size:13px;z-index:10000;
+      max-width:320px;text-align:center;line-height:1.5;
+    }
+    body.ar-mode #ar-error{display:block;}
 
     /* ── LAYOUT ── */
     #main-app{display:flex;flex-direction:column;min-height:100vh;}
@@ -89,9 +101,25 @@
     .main{display:grid;grid-template-columns:1fr;flex:1;}
     @media(min-width:960px){.main{grid-template-columns:1fr 460px;}}
 
+    /* ── VIEWER TOGGLE BAR ── */
+    .viewer-wrap{position:relative;background:var(--bg);min-height:420px;display:flex;flex-direction:column;}
+    .viewer-toggle-bar{
+      display:flex;gap:4px;padding:10px 14px;
+      background:var(--surface);border-bottom:1px solid var(--border);
+      z-index:10;flex-shrink:0;
+    }
+    .btn-view-toggle{
+      display:flex;align-items:center;gap:6px;padding:6px 14px;
+      border:1px solid var(--border);border-radius:6px;background:transparent;
+      color:var(--muted);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .2s;
+    }
+    .btn-view-toggle:hover{color:var(--text);border-color:rgba(255,255,255,.2);}
+    .btn-view-toggle.active{color:#e2eaf6;background:var(--surface2);border-color:rgba(255,255,255,.25);}
+    .btn-view-toggle .icon{font-size:14px;}
+
     /* 3D viewer */
-    .viewer-wrap{position:relative;background:var(--bg);min-height:420px;}
-    .viewer-wrap a-scene{width:100%;height:100%;}
+    .viewer-3d{flex:1;position:relative;min-height:380px;}
+    .viewer-3d a-scene{width:100%;height:100%;min-height:380px;}
     .viewer-overlay{position:absolute;inset:0;pointer-events:none;z-index:5;}
     .viewer-hint{
       position:absolute;bottom:14px;left:14px;
@@ -105,7 +133,68 @@
       padding:4px 10px;border-radius:4px;border:1px solid currentColor;opacity:.85;
     }
 
-    /* Info panel */
+    /* ── INFOGRAFÍA PANEL ── */
+    .viewer-infografia{
+      flex:1;min-height:380px;overflow-y:auto;
+      padding:24px;display:flex;flex-direction:column;gap:18px;
+      background:var(--bg);
+    }
+    .viewer-infografia.hidden, .viewer-3d.hidden{display:none;}
+
+    .info-heading{
+      display:flex;align-items:center;gap:10px;
+      padding-bottom:12px;border-bottom:1px solid var(--border);
+    }
+    .info-heading .emoji-big{font-size:28px;}
+    .info-heading-text h3{font-size:17px;font-weight:700;color:#e2eaf6;}
+    .info-heading-text p{font-size:11px;font-family:var(--mono);color:var(--muted);margin-top:2px;}
+
+    /* Stats row */
+    .infog-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+    .stat-card{
+      background:var(--surface);border:1px solid var(--border);border-radius:10px;
+      padding:12px;text-align:center;
+    }
+    .stat-val{font-family:var(--mono);font-size:15px;font-weight:700;color:#e2eaf6;margin-bottom:3px;}
+    .stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;}
+
+    /* Molecule diagram */
+    .mol-diagram-wrap{
+      background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;
+    }
+    .mol-diagram-title{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px;}
+    .mol-canvas-wrap{
+      width:100%;height:120px;position:relative;display:flex;align-items:center;justify-content:center;
+    }
+    canvas.mol-canvas{border-radius:8px;}
+
+    /* Properties list */
+    .props-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+    .prop-item{
+      background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;
+    }
+    .prop-key{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;}
+    .prop-val{font-size:13px;font-weight:600;color:#e2eaf6;}
+
+    /* Energy bar */
+    .energy-bar-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;}
+    .energy-bar-label{font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:8px;}
+    .energy-bar-track{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;}
+    .energy-bar-fill{height:100%;border-radius:4px;transition:width .8s ease;}
+
+    /* Comparacion de estados */
+    .compare-row{
+      background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;
+    }
+    .compare-title{font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
+    .compare-bars{display:flex;flex-direction:column;gap:6px;}
+    .cmp-item{display:flex;align-items:center;gap:8px;font-size:11px;}
+    .cmp-name{width:60px;color:var(--muted);font-family:var(--mono);font-size:10px;flex-shrink:0;}
+    .cmp-bar-track{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+    .cmp-bar-fill{height:100%;border-radius:3px;}
+    .cmp-active .cmp-name{color:#e2eaf6;}
+
+    /* Info panel (derecha) */
     .info-panel{
       background:var(--surface);border-left:1px solid var(--border);
       padding:0;display:flex;flex-direction:column;overflow-y:auto;max-height:calc(100vh - 130px);
@@ -124,15 +213,12 @@
       font-size:12px;line-height:1.6;color:var(--muted);font-style:italic;
     }
 
-    /* ── Examples section ── */
-    .examples-section{}
+    /* Examples section */
     .section-label{
       font-family:var(--mono);font-size:10px;text-transform:uppercase;
       letter-spacing:2px;color:var(--muted);margin-bottom:10px;
     }
-    .examples-grid{
-      display:grid;grid-template-columns:repeat(2,1fr);gap:8px;
-    }
+    .examples-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
     .ex-card{
       background:var(--surface2);border:1px solid var(--border);border-radius:10px;
       padding:12px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;gap:6px;
@@ -150,7 +236,6 @@
     }
     .ex-detail-header{display:flex;align-items:center;gap:12px;}
     .ex-detail-emoji{font-size:32px;line-height:1;}
-    .ex-detail-info{}
     .ex-detail-name{font-size:15px;font-weight:700;color:#e2eaf6;}
     .ex-detail-badge{
       display:inline-block;margin-top:3px;font-family:var(--mono);font-size:10px;
@@ -162,19 +247,60 @@
       border-left:2px solid currentColor;padding-left:10px;line-height:1.6;
     }
 
-    /* QR dentro del detalle */
-    .ex-ar-row{
-      display:flex;gap:12px;align-items:flex-start;
-      background:rgba(0,0,0,.2);border-radius:8px;padding:12px;border:1px solid var(--border);
+    /* ── AR SECTION (mejorada) ── */
+    .ar-section{
+      background:linear-gradient(135deg,rgba(14,22,40,.9),rgba(18,30,53,.9));
+      border:1px solid var(--border);border-radius:var(--r);padding:16px;
+      display:flex;flex-direction:column;gap:12px;
     }
-    .ex-qr-wrap{
-      flex-shrink:0;background:#fff;border-radius:7px;padding:5px;
-      width:90px;height:90px;display:flex;align-items:center;justify-content:center;
+    .ar-section-title{
+      font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:2px;
+      color:var(--accent);display:flex;align-items:center;gap:6px;
     }
-    .ex-qr-wrap canvas,.ex-qr-wrap img{width:80px!important;height:80px!important;}
-    .ex-ar-info{font-size:11px;color:var(--muted);line-height:1.6;}
-    .ex-ar-info strong{color:var(--accent);display:block;font-size:12px;margin-bottom:4px;}
-    .ex-ar-url{font-family:var(--mono);font-size:9px;color:var(--accent);word-break:break-all;opacity:.6;margin-top:6px;}
+    .ar-section-title::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;animation:pulse-dot 1.5s ease-in-out infinite;}
+    @keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:.3;}}
+    .ar-main-row{display:flex;gap:14px;align-items:flex-start;}
+    .ar-qr-box{
+      flex-shrink:0;background:#fff;border-radius:8px;padding:6px;
+      width:96px;height:96px;display:flex;align-items:center;justify-content:center;
+    }
+    .ar-qr-box canvas,.ar-qr-box img{width:84px!important;height:84px!important;}
+    .ar-info-col{flex:1;display:flex;flex-direction:column;gap:8px;}
+    .ar-info-title{font-size:13px;font-weight:700;color:#e2eaf6;}
+    .ar-info-text{font-size:11px;color:var(--muted);line-height:1.6;}
+    .ar-url-pill{
+      font-family:var(--mono);font-size:9px;color:var(--accent);word-break:break-all;
+      background:rgba(56,189,248,.06);border:1px solid rgba(56,189,248,.2);
+      padding:5px 8px;border-radius:6px;line-height:1.5;
+    }
+    .btn-ar-open{
+      display:inline-flex;align-items:center;gap:6px;
+      background:linear-gradient(135deg,#1d4ed8,#0369a1);
+      color:#fff;border:none;border-radius:8px;
+      padding:9px 16px;font-family:var(--mono);font-size:11px;cursor:pointer;
+      text-decoration:none;transition:opacity .2s;font-weight:700;
+    }
+    .btn-ar-open:hover{opacity:.85;}
+    .ar-steps{
+      background:rgba(0,0,0,.25);border-radius:8px;padding:10px 12px;
+      display:flex;flex-direction:column;gap:5px;
+    }
+    .ar-step{font-size:11px;color:var(--muted);line-height:1.5;display:flex;gap:7px;}
+    .ar-step-num{
+      flex-shrink:0;width:16px;height:16px;background:rgba(56,189,248,.15);
+      border-radius:50%;color:var(--accent);font-family:var(--mono);font-size:9px;
+      display:flex;align-items:center;justify-content:center;margin-top:1px;
+    }
+    .ar-marker-link{
+      font-size:11px;color:var(--accent);text-decoration:none;
+      display:flex;align-items:center;gap:4px;font-family:var(--mono);
+    }
+    .ar-marker-link:hover{text-decoration:underline;}
+    .ar-notice{
+      font-size:10px;color:var(--muted);font-family:var(--mono);
+      border-top:1px solid var(--border);padding-top:8px;line-height:1.5;
+    }
+    .ar-notice span{color:#ef4444;}
 
     footer{
       text-align:center;padding:13px;font-size:11px;
@@ -190,6 +316,7 @@
   <a href="." id="ar-back-btn">← Volver al lab</a>
   <div id="ar-label"></div>
   <div id="ar-hint">📌 Apunta al marcador Hiro</div>
+  <div id="ar-error">⚠️ Si la cámara no inicia, asegúrate de abrir en <strong>Chrome o Safari</strong> con HTTPS y dar permiso de cámara.</div>
   <div id="ar-container"></div>
 
   <!-- MAIN APP -->
@@ -199,10 +326,10 @@
         <div class="logo-icon">⚛️</div>
         <div class="logo-text">
           <h1>Física Interactiva</h1>
-          <p>Laboratorio Virtual · v3.0</p>
+          <p>Laboratorio Virtual · v4.0</p>
         </div>
       </div>
-      <span class="header-tag">AR + 3D</span>
+      <span class="header-tag">AR + 3D + Infografía</span>
     </header>
 
     <nav class="state-nav">
@@ -214,28 +341,45 @@
     </nav>
 
     <div class="main">
-      <!-- VISOR 3D -->
+      <!-- VISOR: 3D + Infografía -->
       <div class="viewer-wrap">
-        <a-scene embedded vr-mode-ui="enabled:false" style="height:100%;min-height:420px;">
-          <a-entity camera position="0 0 4" look-controls></a-entity>
-          <a-light type="ambient" intensity="0.5"></a-light>
-          <a-light type="directional" position="2 4 3" intensity="0.9"></a-light>
-          <a-light type="point" position="-2 2 -2" intensity="0.4" color="#60a5fa"></a-light>
-          <a-sky color="#080d1a"></a-sky>
-          <a-entity id="molecule-group" position="0 0 0">
-            <a-entity id="structure"></a-entity>
-          </a-entity>
-        </a-scene>
-        <div class="viewer-overlay">
-          <span class="state-label-3d" id="viewer-label" style="color:#60a5fa;">Estado Sólido</span>
-          <div class="viewer-hint">🖱 Arrastra · 🔍 Scroll = zoom</div>
+        <!-- Toggle bar -->
+        <div class="viewer-toggle-bar">
+          <button class="btn-view-toggle active" id="btn-toggle-3d" onclick="setViewer('3d')">
+            <span class="icon">⚛️</span> Modelo 3D
+          </button>
+          <button class="btn-view-toggle" id="btn-toggle-info" onclick="setViewer('info')">
+            <span class="icon">📊</span> Infografía
+          </button>
+        </div>
+
+        <!-- 3D viewer -->
+        <div class="viewer-3d" id="viewer-3d">
+          <a-scene embedded vr-mode-ui="enabled:false" style="height:100%;min-height:380px;">
+            <a-entity camera position="0 0 4" look-controls></a-entity>
+            <a-light type="ambient" intensity="0.5"></a-light>
+            <a-light type="directional" position="2 4 3" intensity="0.9"></a-light>
+            <a-light type="point" position="-2 2 -2" intensity="0.4" color="#60a5fa"></a-light>
+            <a-sky color="#080d1a"></a-sky>
+            <a-entity id="molecule-group" position="0 0 0">
+              <a-entity id="structure"></a-entity>
+            </a-entity>
+          </a-scene>
+          <div class="viewer-overlay">
+            <span class="state-label-3d" id="viewer-label" style="color:#60a5fa;">Estado Sólido</span>
+            <div class="viewer-hint">🖱 Arrastra · 🔍 Scroll = zoom</div>
+          </div>
+        </div>
+
+        <!-- INFOGRAFÍA -->
+        <div class="viewer-infografia hidden" id="viewer-infografia">
+          <!-- contenido inyectado por JS -->
         </div>
       </div>
 
       <!-- INFO PANEL -->
       <aside class="info-panel">
         <div class="info-scroll">
-          <!-- State header -->
           <div id="state-header">
             <p class="state-eyebrow">Estado de agregación</p>
             <h2 class="state-title" id="state-title">Estado Sólido</h2>
@@ -253,25 +397,41 @@
             <div class="examples-grid" id="examples-grid"></div>
           </div>
 
-          <!-- Example detail + QR -->
+          <!-- Example detail + AR -->
           <div class="ex-detail" id="ex-detail" style="display:none;">
             <div class="ex-detail-header">
               <div class="ex-detail-emoji" id="ex-emoji"></div>
-              <div class="ex-detail-info">
+              <div>
                 <div class="ex-detail-name" id="ex-name"></div>
                 <span class="ex-detail-badge" id="ex-badge"></span>
               </div>
             </div>
             <p class="ex-detail-desc" id="ex-desc"></p>
-            <div class="ex-detail-fact" id="ex-fact" style="color:#60a5fa;"></div>
-            <!-- QR AR -->
-            <div class="ex-ar-row">
-              <div class="ex-qr-wrap" id="ex-qr"></div>
-              <div class="ex-ar-info">
-                <strong>📱 Ver en Realidad Aumentada</strong>
-                Escanea con tu celular (Chrome/Safari).<br>
-                Apunta al marcador Hiro para ver el modelo 3D del ejemplo.
-                <div class="ex-ar-url" id="ex-ar-url"></div>
+            <div class="ex-detail-fact" id="ex-fact"></div>
+
+            <!-- ══ SECCIÓN AR MEJORADA ══ -->
+            <div class="ar-section">
+              <div class="ar-section-title">📱 Realidad Aumentada</div>
+              <div class="ar-main-row">
+                <div class="ar-qr-box" id="ex-qr"></div>
+                <div class="ar-info-col">
+                  <div class="ar-info-title" id="ar-ex-name-display"></div>
+                  <div class="ar-info-text">Escanea el QR con tu celular para ver el modelo en AR.</div>
+                  <div class="ar-url-pill" id="ex-ar-url"></div>
+                  <a id="btn-ar-direct" class="btn-ar-open" href="#" target="_blank">🔭 Abrir AR →</a>
+                </div>
+              </div>
+              <div class="ar-steps">
+                <div class="ar-step"><span class="ar-step-num">1</span><span>Escanea el QR o toca "Abrir AR"</span></div>
+                <div class="ar-step"><span class="ar-step-num">2</span><span>Permite el acceso a la cámara cuando el navegador lo solicite</span></div>
+                <div class="ar-step"><span class="ar-step-num">3</span><span>Apunta la cámara al marcador <strong style="color:#e2eaf6;">Hiro</strong></span></div>
+                <div class="ar-step"><span class="ar-step-num">4</span><span>El modelo 3D aparecerá encima del marcador</span></div>
+              </div>
+              <a class="ar-marker-link" href="https://ar-js-org.github.io/AR.js/data/images/hiro.png" target="_blank">
+                🖨 Descargar / imprimir marcador Hiro →
+              </a>
+              <div class="ar-notice">
+                <span>Requiere:</span> Chrome o Safari · HTTPS · Permiso de cámara
               </div>
             </div>
           </div>
@@ -279,14 +439,145 @@
       </aside>
     </div>
 
-    <footer>Laboratorio Virtual de Física · Estados de la Materia · A-Frame WebXR + AR.js</footer>
+    <footer>Laboratorio Virtual de Física · Estados de la Materia · A-Frame WebXR + AR.js v3.4</footer>
   </div>
 
   <script>
   const BASE = 'https://romanromojuan-byte.github.io/roman1371/';
 
   /* ══════════════════════════════════════════════
-     DATOS: estados + ejemplos de vida real
+     INFOGRAFÍAS por estado
+  ══════════════════════════════════════════════ */
+  const INFOGRAFIAS = {
+    solid:{
+      emoji:'🧊', subtitle:'Partículas en red fija con vibración mínima',
+      stats:[
+        {val:'0 – 100 K', label:'Rango típico'},
+        {val:'Máxima', label:'Densidad'},
+        {val:'Fija', label:'Forma'}
+      ],
+      props:[
+        {key:'Movimiento', val:'Vibración en sitio'},
+        {key:'Volumen', val:'Definido'},
+        {key:'Compresibilidad', val:'Casi nula'},
+        {key:'Difusión', val:'Muy lenta'},
+        {key:'Orden', val:'Largo alcance'},
+        {key:'Enlace', val:'Iónico / covalente'}
+      ],
+      energy: 5,
+      diagram:'solid',
+      compare:[
+        {name:'Sólido', pct:5, color:'#60a5fa', active:true},
+        {name:'Líquido', pct:35, color:'#34d399'},
+        {name:'Gas', pct:70, color:'#fbbf24'},
+        {name:'Plasma', pct:98, color:'#a78bfa'},
+        {name:'BEC', pct:0.5, color:'#f472b6'}
+      ]
+    },
+    liquid:{
+      emoji:'💧', subtitle:'Partículas móviles con cohesión intermedia',
+      stats:[
+        {val:'−10 – 300°C', label:'Rango típico'},
+        {val:'Alta', label:'Densidad'},
+        {val:'Recipiente', label:'Forma'}
+      ],
+      props:[
+        {key:'Movimiento', val:'Deslizamiento'},
+        {key:'Volumen', val:'Definido'},
+        {key:'Compresibilidad', val:'Muy baja'},
+        {key:'Difusión', val:'Moderada'},
+        {key:'Orden', val:'Corto alcance'},
+        {key:'Enlace', val:'Van der Waals'}
+      ],
+      energy: 35,
+      diagram:'liquid',
+      compare:[
+        {name:'Sólido', pct:5, color:'#60a5fa'},
+        {name:'Líquido', pct:35, color:'#34d399', active:true},
+        {name:'Gas', pct:70, color:'#fbbf24'},
+        {name:'Plasma', pct:98, color:'#a78bfa'},
+        {name:'BEC', pct:0.5, color:'#f472b6'}
+      ]
+    },
+    gas:{
+      emoji:'💨', subtitle:'Partículas libres con movimiento caótico',
+      stats:[
+        {val:'> −200°C', label:'Rango típico'},
+        {val:'Muy baja', label:'Densidad'},
+        {val:'Libre', label:'Forma'}
+      ],
+      props:[
+        {key:'Movimiento', val:'Caótico rápido'},
+        {key:'Volumen', val:'Variable'},
+        {key:'Compresibilidad', val:'Alta'},
+        {key:'Difusión', val:'Rápida'},
+        {key:'Orden', val:'Ninguno'},
+        {key:'Enlace', val:'Sin cohesión'}
+      ],
+      energy: 70,
+      diagram:'gas',
+      compare:[
+        {name:'Sólido', pct:5, color:'#60a5fa'},
+        {name:'Líquido', pct:35, color:'#34d399'},
+        {name:'Gas', pct:70, color:'#fbbf24', active:true},
+        {name:'Plasma', pct:98, color:'#a78bfa'},
+        {name:'BEC', pct:0.5, color:'#f472b6'}
+      ]
+    },
+    plasma:{
+      emoji:'⚡', subtitle:'Gas ionizado: iones libres y electrones sueltos',
+      stats:[
+        {val:'> 10,000 K', label:'Temperatura'},
+        {val:'Variable', label:'Densidad'},
+        {val:'Libre', label:'Forma'}
+      ],
+      props:[
+        {key:'Movimiento', val:'Extremo'},
+        {key:'Volumen', val:'Variable'},
+        {key:'Compresibilidad', val:'Alta'},
+        {key:'Conducción', val:'Eléctrica'},
+        {key:'Orden', val:'Ninguno'},
+        {key:'Estado', val:'Ionizado'}
+      ],
+      energy: 98,
+      diagram:'plasma',
+      compare:[
+        {name:'Sólido', pct:5, color:'#60a5fa'},
+        {name:'Líquido', pct:35, color:'#34d399'},
+        {name:'Gas', pct:70, color:'#fbbf24'},
+        {name:'Plasma', pct:98, color:'#a78bfa', active:true},
+        {name:'BEC', pct:0.5, color:'#f472b6'}
+      ]
+    },
+    bec:{
+      emoji:'🔬', subtitle:'Superposición cuántica a temperatura casi cero',
+      stats:[
+        {val:'< 1 µK', label:'Temperatura'},
+        {val:'Alta', label:'Densidad'},
+        {val:'Definida', label:'Forma'}
+      ],
+      props:[
+        {key:'Movimiento', val:'Cuántico (mín.)'},
+        {key:'Volumen', val:'Definido'},
+        {key:'Compresibilidad', val:'Casi nula'},
+        {key:'Conducción', val:'Superfluida'},
+        {key:'Orden', val:'Cuántico total'},
+        {key:'Estado', val:'Superátomo'}
+      ],
+      energy: 0.5,
+      diagram:'bec',
+      compare:[
+        {name:'Sólido', pct:5, color:'#60a5fa'},
+        {name:'Líquido', pct:35, color:'#34d399'},
+        {name:'Gas', pct:70, color:'#fbbf24'},
+        {name:'Plasma', pct:98, color:'#a78bfa'},
+        {name:'BEC', pct:0.5, color:'#f472b6', active:true}
+      ]
+    }
+  };
+
+  /* ══════════════════════════════════════════════
+     DATOS: estados + ejemplos
   ══════════════════════════════════════════════ */
   const STATES = {
     solid:{
@@ -296,267 +587,100 @@
       extra:"Estructura interna organizada: comportamiento típico de cristales de hielo o metales, con orden de largo alcance.",
       setup3D: buildSolid,
       examples:[
-        {
-          id:"hielo", emoji:"🧊", name:"Cubo de Hielo", tag:"H₂O sólido",
-          short:"Agua congelada a 0°C",
-          desc:"El agua al congelarse forma una red cristalina hexagonal. Las moléculas H₂O se ordenan de forma rígida, creando un sólido translúcido con volumen fijo. Es uno de los sólidos más estudiados en termodinámica.",
+        {id:"hielo",emoji:"🧊",name:"Cubo de Hielo",tag:"H₂O sólido",short:"Agua congelada a 0°C",
+          desc:"El agua al congelarse forma una red cristalina hexagonal. Las moléculas H₂O se ordenan de forma rígida, creando un sólido translúcido con volumen fijo.",
           fact:"El hielo es menos denso que el agua líquida: sus moléculas ocupan más espacio en la red cristalina, por eso flota.",
-          arObjects:`
-            <a-box position="0 1.3 -3" width="0.8" height="0.8" depth="0.8"
-              color="#bfdbfe" material="opacity:0.7;emissive:#1d4ed8;emissiveIntensity:0.4"
-              animation="property:rotation;to:0 360 0;dur:6000;loop:true;easing:linear">
-            </a-box>
-            <a-text value="Hielo H2O" align="center" color="#60a5fa" position="0 2.3 -3" scale="1.4 1.4 1.4"></a-text>`
-        },
-        {
-          id:"diamante", emoji:"💎", name:"Diamante", tag:"Red covalente",
-          short:"Red de carbono más dura",
-          desc:"El diamante es carbono puro en una red covalente tetraédrica, la más resistente en la naturaleza. Cada átomo de carbono forma 4 enlaces con sus vecinos, resultando en una estructura 3D extremadamente compacta y dura.",
+          arObjects:`<a-box position="0 1.3 -3" width="0.8" height="0.8" depth="0.8" color="#bfdbfe" material="opacity:0.7;emissive:#1d4ed8;emissiveIntensity:0.4" animation="property:rotation;to:0 360 0;dur:6000;loop:true;easing:linear"></a-box><a-text value="Hielo H2O" align="center" color="#60a5fa" position="0 2.3 -3" scale="1.4 1.4 1.4"></a-text>`},
+        {id:"diamante",emoji:"💎",name:"Diamante",tag:"Red covalente",short:"Red de carbono más dura",
+          desc:"El diamante es carbono puro en una red covalente tetraédrica, la más resistente en la naturaleza. Cada átomo de carbono forma 4 enlaces con sus vecinos.",
           fact:"Con dureza 10 en la escala de Mohs, es el mineral más duro que existe. Se usa en herramientas de corte industrial.",
-          arObjects:`
-            <a-octahedron position="0 1.4 -3" radius="0.55"
-              color="#e0f2fe" material="opacity:0.85;emissive:#075985;emissiveIntensity:0.5"
-              animation="property:rotation;to:360 360 0;dur:5000;loop:true;easing:linear">
-            </a-octahedron>
-            <a-text value="Diamante" align="center" color="#60a5fa" position="0 2.3 -3" scale="1.4 1.4 1.4"></a-text>`
-        },
-        {
-          id:"metal", emoji:"🔩", name:"Tornillo de Acero", tag:"Metal cristalino",
-          short:"Aleación de Fe y C",
-          desc:"El acero es una aleación de hierro y carbono cuyos átomos se organizan en redes metálicas cristalinas. Los electrones de valencia se mueven libremente entre los iones (mar de electrones), lo que le confiere conductividad eléctrica y maleabilidad.",
+          arObjects:`<a-octahedron position="0 1.4 -3" radius="0.55" color="#e0f2fe" material="opacity:0.85;emissive:#075985;emissiveIntensity:0.5" animation="property:rotation;to:360 360 0;dur:5000;loop:true;easing:linear"></a-octahedron><a-text value="Diamante" align="center" color="#60a5fa" position="0 2.3 -3" scale="1.4 1.4 1.4"></a-text>`},
+        {id:"metal",emoji:"🔩",name:"Tornillo de Acero",tag:"Metal cristalino",short:"Aleación de Fe y C",
+          desc:"El acero es una aleación de hierro y carbono cuyos átomos se organizan en redes metálicas cristalinas. Los electrones de valencia se mueven libremente entre los iones.",
           fact:"A pesar de su dureza, el acero puede deformarse plásticamente: los planos atómicos se deslizan entre sí sin romperse.",
-          arObjects:`
-            <a-cylinder position="0 1.3 -3" radius="0.2" height="0.9"
-              color="#94a3b8" material="emissive:#334155;emissiveIntensity:0.4"
-              animation="property:rotation;to:0 360 0;dur:4000;loop:true;easing:linear">
-            </a-cylinder>
-            <a-cylinder position="0 0.9 -3" radius="0.35" height="0.15" color="#64748b"></a-cylinder>
-            <a-text value="Acero" align="center" color="#60a5fa" position="0 2.3 -3" scale="1.4 1.4 1.4"></a-text>`
-        },
-        {
-          id:"sal", emoji:"🧂", name:"Sal de Mesa (NaCl)", tag:"Cristal iónico",
-          short:"Red de iones Na⁺ y Cl⁻",
-          desc:"La sal de mesa es un cristal iónico donde iones de sodio (Na⁺) y cloruro (Cl⁻) se alternan en una red cúbica perfecta. Las fuerzas electrostáticas entre iones opuestos mantienen la estructura extremadamente estable.",
+          arObjects:`<a-cylinder position="0 1.3 -3" radius="0.2" height="0.9" color="#94a3b8" material="emissive:#334155;emissiveIntensity:0.4" animation="property:rotation;to:0 360 0;dur:4000;loop:true;easing:linear"></a-cylinder><a-cylinder position="0 0.9 -3" radius="0.35" height="0.15" color="#64748b"></a-cylinder><a-text value="Acero" align="center" color="#60a5fa" position="0 2.3 -3" scale="1.4 1.4 1.4"></a-text>`},
+        {id:"sal",emoji:"🧂",name:"Sal de Mesa (NaCl)",tag:"Cristal iónico",short:"Red de iones Na⁺ y Cl⁻",
+          desc:"La sal de mesa es un cristal iónico donde iones de sodio (Na⁺) y cloruro (Cl⁻) se alternan en una red cúbica perfecta.",
           fact:"El NaCl se disuelve fácilmente en agua porque las moléculas polares del agua rodean y separan los iones de la red cristalina.",
-          arObjects:`
-            <a-sphere position="0 1.3 -3" radius="0.22" color="#fde68a" material="emissive:#92400e;emissiveIntensity:0.3"
-              animation="property:rotation;to:0 360 0;dur:7000;loop:true;easing:linear"></a-sphere>
-            <a-sphere position="0.45 1.3 -3" radius="0.28" color="#a5f3fc" material="emissive:#164e63;emissiveIntensity:0.3"></a-sphere>
-            <a-sphere position="-0.45 1.3 -3" radius="0.28" color="#a5f3fc" material="emissive:#164e63;emissiveIntensity:0.3"></a-sphere>
-            <a-sphere position="0 1.75 -3" radius="0.28" color="#a5f3fc"></a-sphere>
-            <a-sphere position="0 0.85 -3" radius="0.28" color="#a5f3fc"></a-sphere>
-            <a-text value="NaCl - Sal" align="center" color="#60a5fa" position="0 2.4 -3" scale="1.4 1.4 1.4"></a-text>`
-        }
+          arObjects:`<a-sphere position="0 1.3 -3" radius="0.22" color="#fde68a" material="emissive:#92400e;emissiveIntensity:0.3" animation="property:rotation;to:0 360 0;dur:7000;loop:true;easing:linear"></a-sphere><a-sphere position="0.45 1.3 -3" radius="0.28" color="#a5f3fc" material="emissive:#164e63;emissiveIntensity:0.3"></a-sphere><a-sphere position="-0.45 1.3 -3" radius="0.28" color="#a5f3fc"></a-sphere><a-sphere position="0 1.75 -3" radius="0.28" color="#a5f3fc"></a-sphere><a-sphere position="0 0.85 -3" radius="0.28" color="#a5f3fc"></a-sphere><a-text value="NaCl - Sal" align="center" color="#60a5fa" position="0 2.4 -3" scale="1.4 1.4 1.4"></a-text>`}
       ]
     },
 
     liquid:{
       title:"Estado Líquido", color:"#34d399",
       energy:"Energía Cinética: Moderada", force:"Cohesión: Intermedia",
-      desc:"Los líquidos representan un equilibrio dinámico entre la energía térmica y las fuerzas de cohesión. Las partículas fluyen libremente unas sobre otras, adoptando la forma del recipiente pero manteniendo volumen constante. Exhiben propiedades como la viscosidad y la tensión superficial.",
+      desc:"Los líquidos representan un equilibrio dinámico entre la energía térmica y las fuerzas de cohesión. Las partículas fluyen libremente unas sobre otras, adoptando la forma del recipiente pero manteniendo volumen constante.",
       extra:"Fluidez: las moléculas se deslizan libremente permitiendo el transporte de materia sin perder cohesión volumétrica.",
       setup3D: buildLiquid,
       examples:[
-        {
-          id:"agua", emoji:"💧", name:"Agua (H₂O)", tag:"Líquido polar",
-          short:"El líquido más estudiado",
-          desc:"El agua es un líquido polar con alto punto de ebullición (100°C) gracias a sus puentes de hidrógeno. Sus moléculas se atraen fuertemente entre sí formando una red dinámica que se reorganiza constantemente, permitiendo la fluidez.",
-          fact:"El agua tiene la mayor capacidad calorífica de los líquidos comunes, lo que estabiliza el clima del planeta Tierra.",
-          arObjects:`
-            <a-sphere position="0 1.3 -3" radius="0.5" color="#38bdf8"
-              material="opacity:0.75;emissive:#0369a1;emissiveIntensity:0.5"
-              animation="property:position;to:0 1.1 -3;dir:alternate;dur:1200;loop:true;easing:easeInOutSine">
-            </a-sphere>
-            <a-sphere position="-0.55 1.4 -3.3" radius="0.28" color="#7dd3fc"
-              material="opacity:0.7"
-              animation="property:position;to:-0.55 1.2 -3.3;dir:alternate;dur:900;loop:true;easing:easeInOutSine">
-            </a-sphere>
-            <a-text value="Agua H2O" align="center" color="#34d399" position="0 2.3 -3" scale="1.4 1.4 1.4"></a-text>`
-        },
-        {
-          id:"mercurio", emoji:"🌡️", name:"Mercurio (Hg)", tag:"Metal líquido",
-          short:"Único metal líquido a 25°C",
-          desc:"El mercurio es el único metal que permanece líquido en condiciones normales (25°C). Sus átomos tienen fuerzas de cohesión relativamente débiles comparadas con otros metales, por lo que la energía térmica ambiente es suficiente para mantenerlos en estado fluido.",
-          fact:"El mercurio tiene una tensión superficial muy alta: forma glóbulos perfectamente esféricos en lugar de extenderse al derramarse.",
-          arObjects:`
-            <a-sphere position="0 1.3 -3" radius="0.45" color="#cbd5e1"
-              material="emissive:#475569;emissiveIntensity:0.6"
-              animation="property:scale;to:1.05 0.95 1.05;dir:alternate;dur:1500;loop:true;easing:easeInOutSine">
-            </a-sphere>
-            <a-text value="Mercurio Hg" align="center" color="#34d399" position="0 2.2 -3" scale="1.4 1.4 1.4"></a-text>`
-        },
-        {
-          id:"aceite", emoji:"🫒", name:"Aceite de Oliva", tag:"Líquido viscoso",
-          short:"Alta viscosidad molecular",
-          desc:"El aceite de oliva es una mezcla de triglicéridos con cadenas largas de carbono. Sus moléculas son más grandes y complejas que las del agua, lo que genera mayor resistencia al flujo (viscosidad). No se mezcla con agua por ser apolar.",
+        {id:"agua",emoji:"💧",name:"Agua (H₂O)",tag:"Líquido polar",short:"El líquido más estudiado",
+          desc:"El agua es un líquido polar con alto punto de ebullición (100°C) gracias a sus puentes de hidrógeno. Sus moléculas forman una red dinámica que se reorganiza constantemente.",
+          fact:"El agua tiene la mayor capacidad calorífica de los líquidos comunes, lo que estabiliza el clima del planeta.",
+          arObjects:`<a-sphere position="0 1.3 -3" radius="0.5" color="#38bdf8" material="opacity:0.75;emissive:#0369a1;emissiveIntensity:0.5" animation="property:position;to:0 1.1 -3;dir:alternate;dur:1200;loop:true;easing:easeInOutSine"></a-sphere><a-sphere position="-0.55 1.4 -3.3" radius="0.28" color="#7dd3fc" material="opacity:0.7" animation="property:position;to:-0.55 1.2 -3.3;dir:alternate;dur:900;loop:true;easing:easeInOutSine"></a-sphere><a-text value="Agua H2O" align="center" color="#34d399" position="0 2.3 -3" scale="1.4 1.4 1.4"></a-text>`},
+        {id:"mercurio",emoji:"🌡️",name:"Mercurio (Hg)",tag:"Metal líquido",short:"Único metal líquido a 25°C",
+          desc:"El mercurio es el único metal que permanece líquido en condiciones normales. Sus átomos tienen fuerzas de cohesión débiles comparadas con otros metales.",
+          fact:"El mercurio tiene una tensión superficial muy alta: forma glóbulos perfectamente esféricos al derramarse.",
+          arObjects:`<a-sphere position="0 1.3 -3" radius="0.45" color="#cbd5e1" material="emissive:#475569;emissiveIntensity:0.6" animation="property:scale;to:1.05 0.95 1.05;dir:alternate;dur:1500;loop:true;easing:easeInOutSine"></a-sphere><a-text value="Mercurio Hg" align="center" color="#34d399" position="0 2.2 -3" scale="1.4 1.4 1.4"></a-text>`},
+        {id:"aceite",emoji:"🫒",name:"Aceite de Oliva",tag:"Líquido viscoso",short:"Alta viscosidad molecular",
+          desc:"El aceite de oliva es una mezcla de triglicéridos con cadenas largas de carbono. Sus moléculas generan mayor resistencia al flujo (viscosidad) y no se mezcla con agua.",
           fact:"La viscosidad del aceite disminuye al calentarlo: las moléculas adquieren más energía cinética y se deslizan más fácilmente.",
-          arObjects:`
-            <a-torus position="0 1.3 -3" radius="0.4" radius-tubular="0.15"
-              color="#fef08a" material="opacity:0.8;emissive:#713f12;emissiveIntensity:0.3"
-              animation="property:rotation;to:0 360 0;dur:4000;loop:true;easing:linear">
-            </a-torus>
-            <a-text value="Aceite" align="center" color="#34d399" position="0 2.2 -3" scale="1.4 1.4 1.4"></a-text>`
-        },
-        {
-          id:"sangre", emoji:"🩸", name:"Sangre", tag:"Fluido no-newtoniano",
-          short:"Líquido biológico complejo",
-          desc:"La sangre es un fluido no-newtoniano compuesto por plasma (líquido) y células (sólidas). Su viscosidad cambia según la velocidad de flujo: es más fluida en arterias grandes y más viscosa en capilares. Contiene proteínas, sales y glóbulos en suspensión.",
-          fact:"El corazón humano bombea aproximadamente 5 litros de sangre por minuto. En toda una vida, bombea suficiente para llenar 3 piscinas olímpicas.",
-          arObjects:`
-            <a-sphere position="0 1.4 -3" radius="0.4" color="#ef4444"
-              material="opacity:0.85;emissive:#7f1d1d;emissiveIntensity:0.5"
-              animation="property:scale;to:1.12 1.12 1.12;dir:alternate;dur:800;loop:true;easing:easeInOutSine">
-            </a-sphere>
-            <a-sphere position="-0.5 1.3 -3.3" radius="0.18" color="#fca5a5"
-              animation="property:position;to:-0.4 1.1 -3.1;dir:alternate;dur:1100;loop:true;easing:easeInOutSine">
-            </a-sphere>
-            <a-text value="Sangre" align="center" color="#34d399" position="0 2.3 -3" scale="1.4 1.4 1.4"></a-text>`
-        }
+          arObjects:`<a-torus position="0 1.3 -3" radius="0.4" radius-tubular="0.15" color="#fef08a" material="opacity:0.8;emissive:#713f12;emissiveIntensity:0.3" animation="property:rotation;to:0 360 0;dur:4000;loop:true;easing:linear"></a-torus><a-text value="Aceite" align="center" color="#34d399" position="0 2.2 -3" scale="1.4 1.4 1.4"></a-text>`},
+        {id:"sangre",emoji:"🩸",name:"Sangre",tag:"Fluido no-newtoniano",short:"Líquido biológico complejo",
+          desc:"La sangre es un fluido no-newtoniano compuesto por plasma (líquido) y células (sólidas). Su viscosidad cambia según la velocidad de flujo.",
+          fact:"El corazón humano bombea aproximadamente 5 litros de sangre por minuto.",
+          arObjects:`<a-sphere position="0 1.4 -3" radius="0.4" color="#ef4444" material="opacity:0.85;emissive:#7f1d1d;emissiveIntensity:0.5" animation="property:scale;to:1.12 1.12 1.12;dir:alternate;dur:800;loop:true;easing:easeInOutSine"></a-sphere><a-text value="Sangre" align="center" color="#34d399" position="0 2.2 -3" scale="1.4 1.4 1.4"></a-text>`}
       ]
     },
 
     gas:{
       title:"Estado Gaseoso", color:"#fbbf24",
-      energy:"Energía Cinética: Alta", force:"Cohesión: Despreciable",
-      desc:"En el estado gaseoso la energía cinética supera ampliamente las fuerzas de atracción. Las moléculas se mueven de forma caótica a altas velocidades. Un gas no posee forma ni volumen propio: se expande para ocupar todo el espacio disponible.",
-      extra:"Cumple las Leyes de los Gases Ideales (P·V = n·R·T). Las distancias intermoleculares son enormes comparadas con el tamaño de las partículas.",
+      energy:"Energía Cinética: Alta", force:"Cohesión: Mínima",
+      desc:"Los gases son el estado más libre de la materia. Las partículas se mueven a grandes velocidades en todas direcciones, chocando entre sí y con las paredes del recipiente. Ocupan todo el volumen disponible sin forma ni volumen definido.",
+      extra:"Presión: resultado de millones de colisiones por segundo de las moléculas contra las paredes del recipiente.",
       setup3D: buildGas,
       examples:[
-        {
-          id:"aire", emoji:"🌬️", name:"Aire", tag:"Mezcla gaseosa",
-          short:"78% N₂ · 21% O₂ · 1% Ar",
-          desc:"El aire es una mezcla de gases principalmente N₂ y O₂. Sus moléculas se mueven a velocidades de ~500 m/s a temperatura ambiente, chocando entre sí millones de veces por segundo. La presión atmosférica es resultado de estos choques contra las superficies.",
-          fact:"A nivel del mar, en 1 cm³ de aire hay aproximadamente 2.7 × 10¹⁹ moléculas (27 trillones de moléculas).",
-          arObjects:`
-            <a-sphere position="0.3 1.6 -3" radius="0.09" color="#bae6fd"
-              animation="property:position;to:-0.4 1.2 -2.8;dir:alternate;dur:600;loop:true;easing:linear"></a-sphere>
-            <a-sphere position="-0.4 1.2 -3.2" radius="0.08" color="#e0f2fe"
-              animation="property:position;to:0.5 1.7 -3.4;dir:alternate;dur:450;loop:true;easing:linear"></a-sphere>
-            <a-sphere position="0.5 1.0 -2.9" radius="0.10" color="#fbbf24"
-              animation="property:position;to:-0.2 1.6 -3.3;dir:alternate;dur:700;loop:true;easing:linear"></a-sphere>
-            <a-sphere position="-0.1 1.8 -3.1" radius="0.08" color="#bae6fd"
-              animation="property:position;to:0.4 1.0 -2.7;dir:alternate;dur:550;loop:true;easing:linear"></a-sphere>
-            <a-text value="Aire" align="center" color="#fbbf24" position="0 2.4 -3" scale="1.4 1.4 1.4"></a-text>`
-        },
-        {
-          id:"vapor", emoji:"♨️", name:"Vapor de Agua", tag:"Gas de H₂O",
-          short:"Agua en estado gaseoso",
-          desc:"El vapor de agua se forma cuando el agua líquida absorbe suficiente energía para romper los puentes de hidrógeno entre moléculas. Cada molécula H₂O escapa como gas independiente, invisible al ojo humano, expandiéndose en todas direcciones.",
-          fact:"El vapor de agua es el gas de efecto invernadero más abundante en la atmósfera terrestre, responsable de más del 50% del efecto total.",
-          arObjects:`
-            <a-sphere position="0 1.5 -3" radius="0.08" color="#e2e8f0" material="opacity:0.5"
-              animation="property:position;to:0.3 2.0 -2.8;dir:alternate;dur:800;loop:true;easing:easeInOutSine"></a-sphere>
-            <a-sphere position="0.3 1.2 -3.1" radius="0.08" color="#cbd5e1" material="opacity:0.5"
-              animation="property:position;to:-0.3 1.8 -3.3;dir:alternate;dur:700;loop:true;easing:easeInOutSine"></a-sphere>
-            <a-sphere position="-0.3 1.7 -2.9" radius="0.08" color="#f1f5f9" material="opacity:0.5"
-              animation="property:position;to:0.4 1.1 -3.2;dir:alternate;dur:900;loop:true;easing:easeInOutSine"></a-sphere>
-            <a-text value="Vapor H2O" align="center" color="#fbbf24" position="0 2.4 -3" scale="1.4 1.4 1.4"></a-text>`
-        },
-        {
-          id:"co2", emoji:"🏭", name:"Dióxido de Carbono (CO₂)", tag:"Gas molecular",
-          short:"Gas de respiración y efecto invernadero",
-          desc:"El CO₂ es una molécula lineal (O=C=O) que se comporta como gas ideal a temperatura ambiente. Lo producen la respiración celular, la combustión y los volcanes. Es soluble en agua, formando ácido carbónico (H₂CO₃), lo que acidifica océanos.",
+        {id:"vapor",emoji:"♨️",name:"Vapor de Agua",tag:"Gas molecular polar",short:"H₂O en fase gaseosa",
+          desc:"El vapor de agua es la fase gaseosa del agua, presente en la atmósfera. Las moléculas se mueven libremente a alta velocidad sin mantener ningún orden.",
+          fact:"El vapor de agua es el gas de efecto invernadero más abundante en la atmósfera terrestre.",
+          arObjects:`<a-sphere position="0 1.5 -3" radius="0.08" color="#e2e8f0" material="opacity:0.5" animation="property:position;to:0.3 2.0 -2.8;dir:alternate;dur:800;loop:true;easing:easeInOutSine"></a-sphere><a-sphere position="0.3 1.2 -3.1" radius="0.08" color="#cbd5e1" material="opacity:0.5" animation="property:position;to:-0.3 1.8 -3.3;dir:alternate;dur:700;loop:true;easing:easeInOutSine"></a-sphere><a-sphere position="-0.3 1.7 -2.9" radius="0.08" color="#f1f5f9" material="opacity:0.5" animation="property:position;to:0.4 1.1 -3.2;dir:alternate;dur:900;loop:true;easing:easeInOutSine"></a-sphere><a-text value="Vapor H2O" align="center" color="#fbbf24" position="0 2.4 -3" scale="1.4 1.4 1.4"></a-text>`},
+        {id:"co2",emoji:"🏭",name:"Dióxido de Carbono (CO₂)",tag:"Gas molecular",short:"Gas de respiración",
+          desc:"El CO₂ es una molécula lineal que se comporta como gas ideal a temperatura ambiente. Es soluble en agua, formando ácido carbónico.",
           fact:"Las plantas convierten CO₂ en glucosa durante la fotosíntesis usando luz solar, produciendo el O₂ que respiramos.",
-          arObjects:`
-            <a-sphere position="0 1.4 -3" radius="0.22" color="#fde68a" material="emissive:#92400e;emissiveIntensity:0.3"
-              animation="property:rotation;to:0 360 0;dur:5000;loop:true;easing:linear"></a-sphere>
-            <a-sphere position="-0.5 1.4 -3" radius="0.18" color="#bfdbfe"></a-sphere>
-            <a-sphere position="0.5 1.4 -3" radius="0.18" color="#bfdbfe"></a-sphere>
-            <a-cylinder position="-0.25 1.4 -3" radius="0.04" height="0.3" rotation="0 0 90" color="#94a3b8"></a-cylinder>
-            <a-cylinder position="0.25 1.4 -3" radius="0.04" height="0.3" rotation="0 0 90" color="#94a3b8"></a-cylinder>
-            <a-text value="CO2" align="center" color="#fbbf24" position="0 2.3 -3" scale="1.4 1.4 1.4"></a-text>`
-        },
-        {
-          id:"helio", emoji:"🎈", name:"Helio (He)", tag:"Gas noble",
-          short:"Gas monoatómico más ligero",
-          desc:"El helio es un gas noble monoatómico: cada partícula es un solo átomo con capa electrónica completa. No forma moléculas ni reacciona con otros elementos. Es el segundo elemento más abundante del universo y el gas más difícil de licuar (−269°C).",
-          fact:"El helio se escapa de la atmósfera terrestre hacia el espacio porque es tan ligero que su velocidad supera la de escape gravitacional.",
-          arObjects:`
-            <a-sphere position="0 1.5 -3" radius="0.14" color="#fde68a" material="emissive:#713f12;emissiveIntensity:0.5"
-              animation="property:position;to:0.5 1.9 -2.8;dir:alternate;dur:700;loop:true;easing:linear"></a-sphere>
-            <a-sphere position="-0.5 1.3 -3.2" radius="0.14" color="#fde68a" material="emissive:#713f12;emissiveIntensity:0.5"
-              animation="property:position;to:0.2 1.1 -3.4;dir:alternate;dur:550;loop:true;easing:linear"></a-sphere>
-            <a-sphere position="0.4 1.0 -3" radius="0.14" color="#fde68a" material="emissive:#713f12;emissiveIntensity:0.5"
-              animation="property:position;to:-0.4 1.6 -3.2;dir:alternate;dur:820;loop:true;easing:linear"></a-sphere>
-            <a-text value="Helio He" align="center" color="#fbbf24" position="0 2.4 -3" scale="1.4 1.4 1.4"></a-text>`
-        }
+          arObjects:`<a-sphere position="0 1.4 -3" radius="0.22" color="#fde68a" material="emissive:#92400e;emissiveIntensity:0.3" animation="property:rotation;to:0 360 0;dur:5000;loop:true;easing:linear"></a-sphere><a-sphere position="-0.5 1.4 -3" radius="0.18" color="#bfdbfe"></a-sphere><a-sphere position="0.5 1.4 -3" radius="0.18" color="#bfdbfe"></a-sphere><a-cylinder position="-0.25 1.4 -3" radius="0.04" height="0.3" rotation="0 0 90" color="#94a3b8"></a-cylinder><a-cylinder position="0.25 1.4 -3" radius="0.04" height="0.3" rotation="0 0 90" color="#94a3b8"></a-cylinder><a-text value="CO2" align="center" color="#fbbf24" position="0 2.3 -3" scale="1.4 1.4 1.4"></a-text>`},
+        {id:"helio",emoji:"🎈",name:"Helio (He)",tag:"Gas noble",short:"Gas monoatómico más ligero",
+          desc:"El helio es un gas noble monoatómico: cada partícula es un solo átomo con capa electrónica completa. No forma moléculas ni reacciona con otros elementos.",
+          fact:"El helio se escapa de la atmósfera terrestre hacia el espacio porque su velocidad supera la de escape gravitacional.",
+          arObjects:`<a-sphere position="0 1.5 -3" radius="0.14" color="#fde68a" material="emissive:#713f12;emissiveIntensity:0.5" animation="property:position;to:0.5 1.9 -2.8;dir:alternate;dur:700;loop:true;easing:linear"></a-sphere><a-sphere position="-0.5 1.3 -3.2" radius="0.14" color="#fde68a" material="emissive:#713f12;emissiveIntensity:0.5" animation="property:position;to:0.2 1.1 -3.4;dir:alternate;dur:550;loop:true;easing:linear"></a-sphere><a-sphere position="0.4 1.0 -3" radius="0.14" color="#fde68a" material="emissive:#713f12;emissiveIntensity:0.5" animation="property:position;to:-0.4 1.6 -3.2;dir:alternate;dur:820;loop:true;easing:linear"></a-sphere><a-text value="Helio He" align="center" color="#fbbf24" position="0 2.4 -3" scale="1.4 1.4 1.4"></a-text>`},
+        {id:"oxigeno",emoji:"🌬️",name:"Oxígeno (O₂)",tag:"Gas diatómico",short:"Gas esencial para la vida",
+          desc:"El oxígeno molecular (O₂) es un gas diatómico que forma el 21% de la atmósfera. Sus moléculas se mueven a ~500 m/s a temperatura ambiente.",
+          fact:"El oxígeno líquido (−183°C) es de color azul pálido y es fuertemente paramagnético.",
+          arObjects:`<a-sphere position="-0.2 1.4 -3" radius="0.2" color="#bfdbfe" material="emissive:#1e40af;emissiveIntensity:0.5" animation="property:position;to:-0.4 1.6 -3;dir:alternate;dur:600;loop:true;easing:linear"></a-sphere><a-sphere position="0.2 1.4 -3" radius="0.2" color="#bfdbfe" material="emissive:#1e40af;emissiveIntensity:0.5" animation="property:position;to:0.5 1.2 -3;dir:alternate;dur:700;loop:true;easing:linear"></a-sphere><a-cylinder position="0 1.4 -3" radius="0.04" height="0.35" rotation="0 0 90" color="#93c5fd"></a-cylinder><a-text value="O2" align="center" color="#fbbf24" position="0 2.3 -3" scale="1.4 1.4 1.4"></a-text>`}
       ]
     },
 
     plasma:{
       title:"El Plasma", color:"#a78bfa",
       energy:"Energía Cinética: Extrema", force:"Cohesión: Nula (Ionizado)",
-      desc:"El plasma es un gas ionizado que se forma bajo temperaturas sumamente elevadas o campos electromagnéticos intensos. Los electrones se desprenden de sus núcleos generando una mezcla de iones positivos y electrones libres. Conduce electricidad y responde a fuerzas magnéticas.",
+      desc:"El plasma es un gas ionizado que se forma bajo temperaturas sumamente elevadas o campos electromagnéticos intensos. Los electrones se desprenden de sus núcleos generando una mezcla de iones positivos y electrones libres.",
       extra:"El estado más común en el universo visible: forma las estrellas, el Sol, los rayos atmosféricos y las lámparas de neón.",
       setup3D: buildPlasma,
       examples:[
-        {
-          id:"sol", emoji:"☀️", name:"El Sol", tag:"Plasma estelar",
-          short:"Bola de plasma a 15 millones °C",
-          desc:"El Sol es una esfera de plasma compuesta principalmente de hidrógeno (73%) y helio (25%) ionizados. En su núcleo, la temperatura alcanza 15 millones de grados Celsius, suficiente para fusionar núcleos de hidrógeno en helio, liberando enormes cantidades de energía.",
-          fact:"Cada segundo, el Sol convierte 600 millones de toneladas de hidrógeno en helio mediante fusión nuclear, liberando energía equivalente a 10²⁶ joules.",
-          arObjects:`
-            <a-sphere position="0 1.4 -3" radius="0.6" color="#fbbf24"
-              material="emissive:#d97706;emissiveIntensity:2"
-              animation="property:scale;to:1.05 1.05 1.05;dir:alternate;dur:1500;loop:true">
-            </a-sphere>
-            <a-torus position="0 1.4 -3" radius="0.9" radius-tubular="0.04" color="#f59e0b" material="opacity:0.4"
-              animation="property:rotation;to:0 360 0;dur:8000;loop:true;easing:linear">
-            </a-torus>
-            <a-text value="El Sol" align="center" color="#a78bfa" position="0 2.4 -3" scale="1.4 1.4 1.4"></a-text>`
-        },
-        {
-          id:"rayo", emoji:"⚡", name:"Rayo Atmosférico", tag:"Plasma natural",
-          short:"Canal de plasma a 30,000°C",
-          desc:"Un rayo es un canal de plasma momentáneo que se forma cuando el campo eléctrico entre nubes o entre nube y suelo supera el límite de ruptura dieléctrica del aire (~3 MV/m). El canal de plasma alcanza temperaturas de 30,000°C en microsegundos.",
-          fact:"La expansión explosiva del canal de plasma calienta el aire circundante, produciendo una onda de presión que escuchamos como trueno.",
-          arObjects:`
-            <a-cylinder position="0 1.9 -3" radius="0.03" height="1.2"
-              color="#fde68a" material="emissive:#ca8a04;emissiveIntensity:3"
-              animation="property:opacity;to:0.2;dir:alternate;dur:100;loop:true">
-            </a-cylinder>
-            <a-cylinder position="-0.05 1.3 -3" rotation="0 0 15" radius="0.03" height="0.6"
-              color="#fde68a" material="emissive:#ca8a04;emissiveIntensity:3"
-              animation="property:opacity;to:0.2;dir:alternate;dur:100;loop:true">
-            </a-cylinder>
-            <a-text value="Rayo" align="center" color="#a78bfa" position="0 2.7 -3" scale="1.4 1.4 1.4"></a-text>`
-        },
-        {
-          id:"neon", emoji:"💡", name:"Lámpara de Neón", tag:"Plasma frío",
-          short:"Plasma ionizado a baja presión",
-          desc:"Las lámparas de neón contienen gas noble a baja presión. Al aplicar alto voltaje, los electrones se desprenden de los átomos (ionización), creando un plasma frío que emite luz al recombinarse los electrones con los iones. El color depende del gas usado.",
-          fact:"El neón emite luz rojo-naranja. Otros gases producen colores distintos: el argón da azul-violeta, el mercurio da azul-verde.",
-          arObjects:`
-            <a-torus position="0 1.4 -3" radius="0.6" radius-tubular="0.07"
-              color="#f472b6" material="emissive:#be185d;emissiveIntensity:2"
-              animation="property:rotation;to:0 360 0;dur:4000;loop:true;easing:linear">
-            </a-torus>
-            <a-torus position="0 1.4 -3" radius="0.6" radius-tubular="0.07" rotation="0 0 90"
-              color="#a78bfa" material="emissive:#7c3aed;emissiveIntensity:2"
-              animation="property:rotation;to:90 360 0;dur:3000;loop:true;easing:linear">
-            </a-torus>
-            <a-text value="Neon" align="center" color="#a78bfa" position="0 2.4 -3" scale="1.4 1.4 1.4"></a-text>`
-        },
-        {
-          id:"aurora", emoji:"🌌", name:"Aurora Boreal", tag:"Plasma atmosférico",
-          short:"Plasma solar + campo magnético",
-          desc:"Las auroras boreales ocurren cuando partículas del viento solar (plasma) son guiadas por el campo magnético terrestre hacia los polos. Al colisionar con moléculas de la atmósfera superior, las excitan. Al desexcitarse, emiten fotones de distintos colores.",
-          fact:"El verde (a 557.7 nm) viene del oxígeno a 100 km de altura. El rojo viene del oxígeno a 200 km. El azul/violeta viene del nitrógeno.",
-          arObjects:`
-            <a-ring position="0 1.4 -3" radius-inner="0.5" radius-outer="0.7"
-              color="#34d399" material="opacity:0.7;emissive:#065f46;emissiveIntensity:1"
-              animation="property:rotation;to:360 30 0;dur:5000;loop:true;easing:linear">
-            </a-ring>
-            <a-ring position="0 1.4 -3" radius-inner="0.7" radius-outer="0.85"
-              color="#a78bfa" material="opacity:0.5;emissive:#7c3aed;emissiveIntensity:1"
-              animation="property:rotation;to:360 -20 0;dur:7000;loop:true;easing:linear">
-            </a-ring>
-            <a-ring position="0 1.4 -3" radius-inner="0.85" radius-outer="0.95"
-              color="#f472b6" material="opacity:0.4;emissive:#9d174d;emissiveIntensity:1"
-              animation="property:rotation;to:360 10 0;dur:9000;loop:true;easing:linear">
-            </a-ring>
-            <a-text value="Aurora Boreal" align="center" color="#a78bfa" position="0 2.5 -3" scale="1.4 1.4 1.4"></a-text>`
-        }
+        {id:"sol",emoji:"☀️",name:"El Sol",tag:"Plasma estelar",short:"Bola de plasma a 15 millones °C",
+          desc:"El Sol es una esfera de plasma compuesta principalmente de hidrógeno (73%) y helio (25%) ionizados. En su núcleo la temperatura alcanza 15 millones de grados.",
+          fact:"Cada segundo, el Sol convierte 600 millones de toneladas de hidrógeno en helio mediante fusión nuclear.",
+          arObjects:`<a-sphere position="0 1.4 -3" radius="0.6" color="#fbbf24" material="emissive:#d97706;emissiveIntensity:2" animation="property:scale;to:1.05 1.05 1.05;dir:alternate;dur:1500;loop:true"></a-sphere><a-torus position="0 1.4 -3" radius="0.9" radius-tubular="0.04" color="#f59e0b" material="opacity:0.4" animation="property:rotation;to:0 360 0;dur:8000;loop:true;easing:linear"></a-torus><a-text value="El Sol" align="center" color="#a78bfa" position="0 2.4 -3" scale="1.4 1.4 1.4"></a-text>`},
+        {id:"rayo",emoji:"⚡",name:"Rayo Atmosférico",tag:"Plasma natural",short:"Canal de plasma a 30,000°C",
+          desc:"Un rayo es un canal de plasma momentáneo que alcanza temperaturas de 30,000°C en microsegundos.",
+          fact:"La expansión explosiva del canal de plasma calienta el aire circundante, produciendo el trueno.",
+          arObjects:`<a-cylinder position="0 1.9 -3" radius="0.03" height="1.2" color="#fde68a" material="emissive:#ca8a04;emissiveIntensity:3" animation="property:opacity;to:0.2;dir:alternate;dur:100;loop:true"></a-cylinder><a-cylinder position="-0.05 1.3 -3" rotation="0 0 15" radius="0.03" height="0.6" color="#fde68a" material="emissive:#ca8a04;emissiveIntensity:3" animation="property:opacity;to:0.2;dir:alternate;dur:100;loop:true"></a-cylinder><a-text value="Rayo" align="center" color="#a78bfa" position="0 2.7 -3" scale="1.4 1.4 1.4"></a-text>`},
+        {id:"neon",emoji:"💡",name:"Lámpara de Neón",tag:"Plasma frío",short:"Plasma ionizado a baja presión",
+          desc:"Las lámparas de neón contienen gas noble a baja presión. Al aplicar alto voltaje, los electrones se desprenden de los átomos, creando un plasma frío que emite luz.",
+          fact:"El neón emite luz rojo-naranja. El argón da azul-violeta, el mercurio da azul-verde.",
+          arObjects:`<a-torus position="0 1.4 -3" radius="0.6" radius-tubular="0.07" color="#f472b6" material="emissive:#be185d;emissiveIntensity:2" animation="property:rotation;to:0 360 0;dur:4000;loop:true;easing:linear"></a-torus><a-torus position="0 1.4 -3" radius="0.6" radius-tubular="0.07" rotation="0 0 90" color="#a78bfa" material="emissive:#7c3aed;emissiveIntensity:2" animation="property:rotation;to:90 360 0;dur:3000;loop:true;easing:linear"></a-torus><a-text value="Neon" align="center" color="#a78bfa" position="0 2.4 -3" scale="1.4 1.4 1.4"></a-text>`},
+        {id:"aurora",emoji:"🌌",name:"Aurora Boreal",tag:"Plasma atmosférico",short:"Plasma solar + campo magnético",
+          desc:"Las auroras boreales ocurren cuando partículas del viento solar son guiadas por el campo magnético terrestre hacia los polos, excitando moléculas atmosféricas.",
+          fact:"El verde (557.7 nm) viene del oxígeno a 100 km. El rojo viene del oxígeno a 200 km. El azul/violeta del nitrógeno.",
+          arObjects:`<a-ring position="0 1.4 -3" radius-inner="0.5" radius-outer="0.7" color="#34d399" material="opacity:0.7;emissive:#065f46;emissiveIntensity:1" animation="property:rotation;to:360 30 0;dur:5000;loop:true;easing:linear"></a-ring><a-ring position="0 1.4 -3" radius-inner="0.7" radius-outer="0.85" color="#a78bfa" material="opacity:0.5;emissive:#7c3aed;emissiveIntensity:1" animation="property:rotation;to:360 -20 0;dur:7000;loop:true;easing:linear"></a-ring><a-text value="Aurora Boreal" align="center" color="#a78bfa" position="0 2.5 -3" scale="1.4 1.4 1.4"></a-text>`}
       ]
     },
 
@@ -567,124 +691,207 @@
       extra:"Superfluidez absoluta: la fricción desaparece por completo y la materia se unifica en una identidad colectiva única.",
       setup3D: buildBEC,
       examples:[
-        {
-          id:"rubidio", emoji:"⚗️", name:"Rubidio-87 enfriado", tag:"Primer BEC experimental",
-          short:"Primer BEC creado en 1995",
-          desc:"En 1995, Cornell y Wieman enfriaron átomos de Rubidio-87 hasta 170 nanokelvin usando trampas láser y enfriamiento evaporativo. A esa temperatura, cerca de 2,000 átomos colapsaron en el mismo estado cuántico base, formando el primer BEC artificial de la historia.",
+        {id:"rubidio",emoji:"⚗️",name:"Rubidio-87 enfriado",tag:"Primer BEC experimental",short:"Primer BEC creado en 1995",
+          desc:"En 1995, Cornell y Wieman enfriaron átomos de Rubidio-87 hasta 170 nanokelvin usando trampas láser, formando el primer BEC artificial.",
           fact:"Este logro les valió el Premio Nobel de Física 2001. La temperatura alcanzada es 10 millones de veces más fría que el espacio interestelar.",
-          arObjects:`
-            <a-sphere position="0 1.4 -3" radius="0.55" color="#f472b6"
-              material="opacity:0.8;emissive:#9d174d;emissiveIntensity:0.6"
-              animation="property:scale;to:1.25 1.25 1.25;dir:alternate;dur:2800;loop:true;easing:easeInOutQuad">
-            </a-sphere>
-            <a-ring position="0 1.4 -3" radius-inner="0.65" radius-outer="0.75" color="#c084fc"
-              animation="property:rotation;to:360 0 0;dur:4000;loop:true;easing:linear">
-            </a-ring>
-            <a-text value="BEC Rubidio-87" align="center" color="#f472b6" position="0 2.4 -3" scale="1.3 1.3 1.3"></a-text>`
-        },
-        {
-          id:"superfluido", emoji:"🌀", name:"Helio Superfluido (He-II)", tag:"BEC macroscópico",
-          short:"Fluye sin fricción ni viscosidad",
-          desc:"El helio-4 enfriado por debajo de −271°C (2.17 K) entra en una fase superfluida relacionada con la condensación de Bose-Einstein. En este estado, el helio fluye sin ninguna viscosidad, trepa por las paredes de los recipientes y transmite calor instantáneamente.",
-          fact:"Un superfluido en un recipiente giratorio eventualmente 'escapa' trepando por las paredes y goteando por fuera, desafiando la gravedad aparentemente.",
-          arObjects:`
-            <a-torus position="0 1.4 -3" radius="0.5" radius-tubular="0.12"
-              color="#c084fc" material="opacity:0.75;emissive:#7e22ce;emissiveIntensity:0.6"
-              animation="property:rotation;to:0 360 0;dur:3000;loop:true;easing:linear">
-            </a-torus>
-            <a-torus position="0 1.4 -3" radius="0.5" radius-tubular="0.12" rotation="90 0 0"
-              color="#f0abfc" material="opacity:0.5;emissive:#7e22ce;emissiveIntensity:0.4"
-              animation="property:rotation;to:90 0 360;dur:5000;loop:true;easing:linear">
-            </a-torus>
-            <a-text value="He Superfluido" align="center" color="#f472b6" position="0 2.4 -3" scale="1.3 1.3 1.3"></a-text>`
-        },
-        {
-          id:"laser", emoji:"🔬", name:"Láser de Átomo BEC", tag:"Óptica cuántica",
-          short:"Ondas de materia coherentes",
-          desc:"Al liberar gradualmente átomos de un BEC, se obtiene un 'láser de átomos': un haz coherente de materia análogo a un láser óptico. Las ondas cuánticas de todos los átomos están perfectamente en fase, igual que los fotones de un láser convencional.",
-          fact:"Este láser de átomos podría usarse para construir giroscopios cuánticos y acelerómetros de precisión extrema para navegación.",
-          arObjects:`
-            <a-cylinder position="0 1.5 -3" radius="0.08" height="1.4"
-              color="#f0abfc" material="emissive:#a21caf;emissiveIntensity:1.5; opacity:0.9"
-              animation="property:scale;to:1.2 1 1.2;dir:alternate;dur:600;loop:true">
-            </a-cylinder>
-            <a-sphere position="0 2.2 -3" radius="0.2" color="#f472b6"
-              material="emissive:#9d174d;emissiveIntensity:0.8"
-              animation="property:scale;to:1.3 1.3 1.3;dir:alternate;dur:1200;loop:true">
-            </a-sphere>
-            <a-text value="Laser de Atomo" align="center" color="#f472b6" position="0 2.9 -3" scale="1.3 1.3 1.3"></a-text>`
-        },
-        {
-          id:"superconductor", emoji:"🧲", name:"Superconductor Cuántico", tag:"BEC de pares Cooper",
-          short:"Resistencia eléctrica cero",
-          desc:"En un superconductor enfriado bajo su temperatura crítica, los pares de electrones (pares de Cooper) forman un condensado de Bose-Einstein. Este condensado fluye sin resistencia eléctrica. La superconductividad es una manifestación macroscópica de la mecánica cuántica.",
-          fact:"Los trenes de levitación magnética (Maglev) usan superconductores para flotar sobre rieles magnéticos sin fricción, alcanzando +600 km/h.",
-          arObjects:`
-            <a-box position="0 1.1 -3" width="1.0" height="0.2" depth="0.6"
-              color="#475569" material="emissive:#1e293b;emissiveIntensity:0.4">
-            </a-box>
-            <a-box position="0 1.5 -3" width="0.7" height="0.18" depth="0.45"
-              color="#f472b6" material="emissive:#9d174d;emissiveIntensity:0.5"
-              animation="property:position;to:0 1.6 -3;dir:alternate;dur:2000;loop:true;easing:easeInOutSine">
-            </a-box>
-            <a-text value="Superconductor" align="center" color="#f472b6" position="0 2.4 -3" scale="1.3 1.3 1.3"></a-text>`
-        }
+          arObjects:`<a-sphere position="0 1.4 -3" radius="0.55" color="#f472b6" material="opacity:0.8;emissive:#9d174d;emissiveIntensity:0.6" animation="property:scale;to:1.25 1.25 1.25;dir:alternate;dur:2800;loop:true;easing:easeInOutQuad"></a-sphere><a-ring position="0 1.4 -3" radius-inner="0.65" radius-outer="0.75" color="#c084fc" animation="property:rotation;to:360 0 0;dur:4000;loop:true;easing:linear"></a-ring><a-text value="BEC Rubidio-87" align="center" color="#f472b6" position="0 2.4 -3" scale="1.3 1.3 1.3"></a-text>`},
+        {id:"superfluido",emoji:"🌀",name:"Helio Superfluido (He-II)",tag:"BEC macroscópico",short:"Fluye sin fricción ni viscosidad",
+          desc:"El helio-4 enfriado por debajo de −271°C entra en una fase superfluida. Fluye sin viscosidad y trepa por las paredes de los recipientes.",
+          fact:"Un superfluido en un recipiente giratorio eventualmente 'escapa' trepando por las paredes, desafiando la gravedad.",
+          arObjects:`<a-torus position="0 1.4 -3" radius="0.5" radius-tubular="0.12" color="#c084fc" material="opacity:0.75;emissive:#7e22ce;emissiveIntensity:0.6" animation="property:rotation;to:0 360 0;dur:3000;loop:true;easing:linear"></a-torus><a-torus position="0 1.4 -3" radius="0.5" radius-tubular="0.12" rotation="90 0 0" color="#f0abfc" material="opacity:0.5" animation="property:rotation;to:90 0 360;dur:5000;loop:true;easing:linear"></a-torus><a-text value="He Superfluido" align="center" color="#f472b6" position="0 2.4 -3" scale="1.3 1.3 1.3"></a-text>`},
+        {id:"laser",emoji:"🔬",name:"Láser de Átomo BEC",tag:"Óptica cuántica",short:"Ondas de materia coherentes",
+          desc:"Al liberar gradualmente átomos de un BEC, se obtiene un 'láser de átomos': un haz coherente de materia análogo a un láser óptico.",
+          fact:"Este láser de átomos podría usarse para giroscopios cuánticos y acelerómetros de precisión extrema.",
+          arObjects:`<a-cylinder position="0 1.5 -3" radius="0.08" height="1.4" color="#f0abfc" material="emissive:#a21caf;emissiveIntensity:1.5;opacity:0.9" animation="property:scale;to:1.2 1 1.2;dir:alternate;dur:600;loop:true"></a-cylinder><a-sphere position="0 2.2 -3" radius="0.2" color="#f472b6" material="emissive:#9d174d;emissiveIntensity:0.8" animation="property:scale;to:1.3 1.3 1.3;dir:alternate;dur:1200;loop:true"></a-sphere><a-text value="Laser de Atomo" align="center" color="#f472b6" position="0 2.9 -3" scale="1.3 1.3 1.3"></a-text>`},
+        {id:"superconductor",emoji:"🧲",name:"Superconductor Cuántico",tag:"BEC de pares Cooper",short:"Resistencia eléctrica cero",
+          desc:"En un superconductor enfriado bajo su temperatura crítica, los pares de Cooper forman un condensado de Bose-Einstein que fluye sin resistencia eléctrica.",
+          fact:"Los trenes Maglev usan superconductores para flotar sobre rieles magnéticos sin fricción, alcanzando +600 km/h.",
+          arObjects:`<a-box position="0 1.1 -3" width="1.0" height="0.2" depth="0.6" color="#475569" material="emissive:#1e293b;emissiveIntensity:0.4"></a-box><a-box position="0 1.5 -3" width="0.7" height="0.18" depth="0.45" color="#f472b6" material="emissive:#9d174d;emissiveIntensity:0.5" animation="property:position;to:0 1.6 -3;dir:alternate;dur:2000;loop:true;easing:easeInOutSine"></a-box><a-text value="Superconductor" align="center" color="#f472b6" position="0 2.4 -3" scale="1.3 1.3 1.3"></a-text>`}
       ]
     }
   };
 
-  /* ══════ DOM ══════ */
-  const buttons      = document.querySelectorAll('.btn-state');
-  const titleEl      = document.getElementById('state-title');
-  const descEl       = document.getElementById('state-description');
-  const extraEl      = document.getElementById('state-extra');
-  const energyBadge  = document.getElementById('energy-badge');
-  const forceBadge   = document.getElementById('force-badge');
-  const viewerLabel  = document.getElementById('viewer-label');
-  const structureEl  = document.getElementById('structure');
-  const exGrid       = document.getElementById('examples-grid');
-  const exDetail     = document.getElementById('ex-detail');
+  /* ══════ ESTADO GLOBAL ══════ */
+  const buttons     = document.querySelectorAll('.btn-state');
+  const titleEl     = document.getElementById('state-title');
+  const descEl      = document.getElementById('state-description');
+  const extraEl     = document.getElementById('state-extra');
+  const energyBadge = document.getElementById('energy-badge');
+  const forceBadge  = document.getElementById('force-badge');
+  const viewerLabel = document.getElementById('viewer-label');
+  const structureEl = document.getElementById('structure');
+  const exGrid      = document.getElementById('examples-grid');
+  const exDetail    = document.getElementById('ex-detail');
+  let currentState  = 'solid';
+  let currentExIdx  = 0;
+  let currentViewer = '3d'; // '3d' | 'info'
 
-  let currentState = 'solid';
-  let currentExIdx = 0;
+  /* ══════ TOGGLE VISOR ══════ */
+  function setViewer(mode) {
+    currentViewer = mode;
+    document.getElementById('viewer-3d').classList.toggle('hidden', mode !== '3d');
+    document.getElementById('viewer-infografia').classList.toggle('hidden', mode !== 'info');
+    document.getElementById('btn-toggle-3d').classList.toggle('active', mode === '3d');
+    document.getElementById('btn-toggle-info').classList.toggle('active', mode === 'info');
+    if (mode === 'info') renderInfografia(currentState);
+  }
+
+  /* ══════ DIAGRAMAS DE MOLÉCULAS (Canvas) ══════ */
+  function drawMolDiagram(canvas, tipo, color) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#080d1a';
+    ctx.fillRect(0, 0, w, h);
+
+    const draw = (x, y, r, alpha=1) => {
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI*2);
+      ctx.fillStyle = color + Math.round(alpha*255).toString(16).padStart(2,'0');
+      ctx.fill();
+    };
+
+    if (tipo === 'solid') {
+      for (let row=0;row<4;row++) for (let col=0;col<7;col++)
+        draw(28+col*28, 20+row*28, 10);
+    } else if (tipo === 'liquid') {
+      const pts = [[30,20],[60,35],[90,18],[120,32],[150,22],[180,38],[210,25],
+                   [45,55],[80,65],[115,50],[145,60],[175,55],[200,62],
+                   [30,90],[65,100],[100,88],[135,98],[170,85],[205,95],
+                   [50,125],[90,130],[130,118],[165,128]];
+      pts.forEach(([x,y]) => draw(x, y, 9, 0.9));
+    } else if (tipo === 'gas') {
+      const pts = [[30,20],[80,15],[140,25],[190,10],[220,35],
+                   [15,55],[65,60],[120,45],[170,70],[210,58],
+                   [40,95],[100,100],[155,88],[200,105],
+                   [20,130],[75,135],[135,125],[185,140],[225,120]];
+      pts.forEach(([x,y]) => draw(x, y, 7, 0.7));
+    } else if (tipo === 'plasma') {
+      for (let i=0;i<22;i++) {
+        const x = 15+Math.random()*210, y=10+Math.random()*130;
+        draw(x, y, 5+Math.random()*5, 0.6+Math.random()*0.4);
+        // electron libre
+        ctx.beginPath(); ctx.arc(x+15, y-10, 2, 0, Math.PI*2);
+        ctx.fillStyle = '#fbbf24'; ctx.fill();
+      }
+    } else if (tipo === 'bec') {
+      // superposición: un blob central grande
+      const grad = ctx.createRadialGradient(120,75,5,120,75,70);
+      grad.addColorStop(0, color+'ff');
+      grad.addColorStop(0.5, color+'88');
+      grad.addColorStop(1, color+'00');
+      ctx.beginPath(); ctx.arc(120,75,70,0,Math.PI*2);
+      ctx.fillStyle = grad; ctx.fill();
+      // anillos
+      ctx.beginPath(); ctx.arc(120,75,80,0,Math.PI*2);
+      ctx.strokeStyle = color+'66'; ctx.lineWidth=2; ctx.stroke();
+    }
+  }
+
+  /* ══════ RENDER INFOGRAFÍA ══════ */
+  function renderInfografia(key) {
+    const inf = INFOGRAFIAS[key];
+    const d   = STATES[key];
+    const wrap = document.getElementById('viewer-infografia');
+
+    const stateNames = ['solid','liquid','gas','plasma','bec'];
+    const compareRows = inf.compare.map(c => `
+      <div class="cmp-item${c.active?' cmp-active':''}">
+        <span class="cmp-name">${c.name}</span>
+        <div class="cmp-bar-track">
+          <div class="cmp-bar-fill" style="width:${c.pct}%;background:${c.color};"></div>
+        </div>
+      </div>`).join('');
+
+    const propsHTML = inf.props.map(p=>`
+      <div class="prop-item">
+        <div class="prop-key">${p.key}</div>
+        <div class="prop-val">${p.val}</div>
+      </div>`).join('');
+
+    const statsHTML = inf.stats.map(s=>`
+      <div class="stat-card">
+        <div class="stat-val" style="color:${d.color}">${s.val}</div>
+        <div class="stat-label">${s.label}</div>
+      </div>`).join('');
+
+    wrap.innerHTML = `
+      <div class="info-heading">
+        <span class="emoji-big">${inf.emoji}</span>
+        <div class="info-heading-text">
+          <h3 style="color:${d.color}">${d.title}</h3>
+          <p>${inf.subtitle}</p>
+        </div>
+      </div>
+
+      <div class="infog-stats">${statsHTML}</div>
+
+      <div class="mol-diagram-wrap">
+        <div class="mol-diagram-title">Distribución molecular</div>
+        <div class="mol-canvas-wrap">
+          <canvas class="mol-canvas" id="mol-canvas-${key}" width="240" height="150"></canvas>
+        </div>
+      </div>
+
+      <div class="energy-bar-wrap">
+        <div class="energy-bar-label">Nivel de energía cinética</div>
+        <div class="energy-bar-track">
+          <div class="energy-bar-fill" id="ebar-fill" style="width:0%;background:${d.color};"></div>
+        </div>
+      </div>
+
+      <div class="props-grid">${propsHTML}</div>
+
+      <div class="compare-row">
+        <div class="compare-title">Energía vs otros estados</div>
+        <div class="compare-bars">${compareRows}</div>
+      </div>`;
+
+    // Dibujar canvas
+    requestAnimationFrame(() => {
+      const canvas = document.getElementById('mol-canvas-'+key);
+      if (canvas) drawMolDiagram(canvas, inf.diagram, d.color);
+      // Animar barra
+      setTimeout(() => {
+        const fill = document.getElementById('ebar-fill');
+        if (fill) fill.style.width = inf.energy + '%';
+      }, 100);
+    });
+  }
 
   /* ══════ RENDER ESTADO ══════ */
   function updateState(key) {
     currentState = key;
     const d = STATES[key];
+    titleEl.textContent     = d.title;
+    descEl.textContent      = d.desc;
+    extraEl.textContent     = d.extra;
+    extraEl.style.color     = d.color;
+    energyBadge.textContent = d.energy;
+    energyBadge.style.color = d.color;
+    forceBadge.textContent  = d.force;
+    viewerLabel.textContent = d.title;
+    viewerLabel.style.color = d.color;
 
-    titleEl.textContent      = d.title;
-    descEl.textContent       = d.desc;
-    extraEl.textContent      = d.extra;
-    extraEl.style.color      = d.color;
-    energyBadge.textContent  = d.energy;
-    energyBadge.style.color  = d.color;
-    forceBadge.textContent   = d.force;
-    viewerLabel.textContent  = d.title;
-    viewerLabel.style.color  = d.color;
-
-    // Rebuild 3D
     structureEl.innerHTML = '';
     const mg = document.getElementById('molecule-group');
     mg.removeAttribute('animation');
     void mg.offsetWidth;
     d.setup3D();
 
-    // Render ejemplos
     renderExamples(key);
-
-    // Seleccionar primer ejemplo
     selectExample(key, 0);
 
-    // Fade
     ['state-header','badges-wrap'].forEach(id=>{
       const el=document.getElementById(id);
-      if(!el)return;
+      if(!el) return;
       el.classList.remove('fade'); void el.offsetWidth; el.classList.add('fade');
     });
+
+    if (currentViewer === 'info') renderInfografia(key);
   }
 
-  /* ══════ RENDER GRID DE EJEMPLOS ══════ */
+  /* ══════ RENDER GRID EJEMPLOS ══════ */
   function renderExamples(key) {
     const d = STATES[key];
     exGrid.innerHTML = '';
@@ -692,10 +899,7 @@
       const card = document.createElement('div');
       card.className = 'ex-card';
       card.style.color = d.color;
-      card.innerHTML = `
-        <div class="ex-emoji">${ex.emoji}</div>
-        <div class="ex-name">${ex.name}</div>
-        <div class="ex-short">${ex.short}</div>`;
+      card.innerHTML = `<div class="ex-emoji">${ex.emoji}</div><div class="ex-name">${ex.name}</div><div class="ex-short">${ex.short}</div>`;
       card.addEventListener('click', () => selectExample(key, i));
       exGrid.appendChild(card);
     });
@@ -704,36 +908,40 @@
   /* ══════ SELECCIONAR EJEMPLO + QR ══════ */
   function selectExample(stateKey, idx) {
     currentExIdx = idx;
-    const d   = STATES[stateKey];
-    const ex  = d.examples[idx];
+    const d  = STATES[stateKey];
+    const ex = d.examples[idx];
 
-    // Marcar card activa
-    document.querySelectorAll('.ex-card').forEach((c,i)=>{
-      c.classList.toggle('active-ex', i===idx);
-    });
+    document.querySelectorAll('.ex-card').forEach((c,i) => c.classList.toggle('active-ex', i===idx));
 
-    // Rellenar detalle
     document.getElementById('ex-emoji').textContent = ex.emoji;
     document.getElementById('ex-name').textContent  = ex.name;
+    document.getElementById('ar-ex-name-display').textContent = ex.emoji + ' ' + ex.name;
     const badge = document.getElementById('ex-badge');
-    badge.textContent   = ex.tag;
-    badge.style.color   = d.color;
-    badge.style.borderColor = d.color;
-    document.getElementById('ex-desc').textContent  = ex.desc;
+    badge.textContent = ex.tag; badge.style.color = d.color; badge.style.borderColor = d.color;
+    document.getElementById('ex-desc').textContent = ex.desc;
     const fact = document.getElementById('ex-fact');
-    fact.textContent    = '💡 ' + ex.fact;
-    fact.style.borderColor = d.color;
+    fact.textContent = '💡 ' + ex.fact; fact.style.borderColor = d.color;
 
-    // QR con URL pública real: ?ar=solid&ex=hielo
+    // URL AR
     const arURL = `${BASE}?ar=${stateKey}&ex=${ex.id}`;
     document.getElementById('ex-ar-url').textContent = arURL;
+
+    // Botón directo
+    const btnAR = document.getElementById('btn-ar-direct');
+    btnAR.href = arURL;
+
+    // QR
     const qrWrap = document.getElementById('ex-qr');
     qrWrap.innerHTML = '';
-    new QRCode(qrWrap, {
-      text: arURL, width:80, height:80,
-      colorDark:'#080d1a', colorLight:'#ffffff',
-      correctLevel: QRCode.CorrectLevel.M
-    });
+    try {
+      new QRCode(qrWrap, {
+        text: arURL, width:84, height:84,
+        colorDark:'#050a14', colorLight:'#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } catch(e) {
+      qrWrap.innerHTML = '<div style="font-size:10px;color:#5a6e8a;padding:4px;text-align:center;">QR no disponible</div>';
+    }
 
     exDetail.style.display = 'flex';
     exDetail.classList.remove('fade');
@@ -748,20 +956,22 @@
     const arEx    = p.get('ex');
     if (!arState || !STATES[arState]) return false;
 
-    const d = STATES[arState];
-    // Buscar ejemplo específico o usar el primero
+    const d  = STATES[arState];
     const ex = arEx ? d.examples.find(e=>e.id===arEx) : d.examples[0];
     const label = ex ? `${ex.emoji} ${ex.name}` : d.title;
 
     document.body.classList.add('ar-mode');
     document.getElementById('ar-label').textContent = label;
 
+    // AR.js con configuración más robusta y compatible
     const arHTML = `
-      <a-scene embedded
-        arjs="sourceType:webcam;debugUIEnabled:false;detectionMode:mono_and_matrix;matrixCodeType:3x3;"
+      <a-scene
+        embedded
+        arjs="sourceType:webcam; debugUIEnabled:false; detectionMode:mono; patternRatio:0.75;"
         vr-mode-ui="enabled:false"
-        renderer="logarithmicDepthBuffer:true;antialias:true;"
+        renderer="logarithmicDepthBuffer:true; antialias:true; alpha:true;"
         style="width:100vw;height:100vh;">
+        <a-assets></a-assets>
         <a-marker preset="hiro">
           ${ex ? ex.arObjects : d.examples[0].arObjects}
         </a-marker>
@@ -846,7 +1056,7 @@
   });
 
   /* ══════ ARRANQUE ══════ */
-  if(!checkARMode()) updateState('solid');
+  if (!checkARMode()) updateState('solid');
   </script>
 </body>
 </html>
